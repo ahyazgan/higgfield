@@ -1,0 +1,10 @@
+# Generated outputs (regeneratable, large)
+out/
+
+# Original full-size master PNGs (backed up locally, too large for git)
+refs/_originals/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
