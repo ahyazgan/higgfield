@@ -109,12 +109,25 @@ OPPOSING_PAIRS=(
   "directly behind|to the side"
   "directly behind|in front of"
 )
+# Saf-bash string yardımcıları (grep'siz — msys2/Windows'ta `grep -i` here-string
+# ile SIGABRT atıp sessizce "no-match" döndüğü için kapı çökmesin diye).
+_count_substr() {  # _count_substr <metin> <parça> -> tam-eşleşme sayısı (büyük/küçük duyarlı)
+  local rest=$1 needle=$2 c=0
+  [ -n "$needle" ] || { printf 0; return; }
+  while [ "${rest#*"$needle"}" != "$rest" ]; do c=$((c+1)); rest=${rest#*"$needle"}; done
+  printf '%s' "$c"
+}
+_contains_ci() {  # _contains_ci <metin> <parça> -> 0 (true) eğer içeriyorsa (duyarsız)
+  local hay=${1,,} needle=${2,,}
+  [ -n "$needle" ] || return 1
+  [ "${hay#*"$needle"}" != "$hay" ]
+}
 mutex_check() {
   local prompt=$1 conflicts=0 sig n hit
   # 1) Tam olarak BİR kamera modu imzası olmalı.
   local cam_hits=0
   for sig in "${CAMERA_SIGNATURES[@]}"; do
-    n=$(grep -o -F "$sig" <<<"$prompt" | wc -l)
+    n=$(_count_substr "$prompt" "$sig")
     cam_hits=$((cam_hits + n))
   done
   if [ "$cam_hits" -gt 1 ]; then
@@ -126,7 +139,7 @@ mutex_check() {
   fi
   # 2) Negatife ait terimler pozitifte olmamalı.
   for hit in "${FORBIDDEN_IN_POSITIVE[@]}"; do
-    if grep -qi -F "$hit" <<<"$prompt"; then
+    if _contains_ci "$prompt" "$hit"; then
       warn "Çelişki: pozitif prompt'ta negatife ait terim var: '$hit'"
       conflicts=$((conflicts + 1))
     fi
@@ -135,7 +148,7 @@ mutex_check() {
   local pair a b
   for pair in "${OPPOSING_PAIRS[@]}"; do
     a="${pair%%|*}"; b="${pair##*|}"
-    if grep -qi -F "$a" <<<"$prompt" && grep -qi -F "$b" <<<"$prompt"; then
+    if _contains_ci "$prompt" "$a" && _contains_ci "$prompt" "$b"; then
       warn "Çelişki: karşıt yön ipuçları birlikte: '$a' + '$b' (kamera modu ile framing/ortam uyumsuz)"
       conflicts=$((conflicts + 1))
     fi
