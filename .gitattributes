@@ -1,0 +1,14 @@
+# Shell/Python/JSON dosyaları HER ZAMAN LF satır sonu kullanmalı.
+# Windows'ta core.autocrlf bunları CRLF'e çevirirse bash shebang'i ve script'ler
+# bozulur (bu projede CRLF kaynaklı hatalar zaten yaşandı). Bu kural onları sabitler.
+*.sh   text eol=lf
+*.py   text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+
+# İkili varlıklar — dokunma
+*.jpg  binary
+*.jpeg binary
+*.png  binary
+*.mp4  binary
+*.mp3  binary
