@@ -17,7 +17,7 @@
     "id": "north_kitchen",
     "name": "NORTH kitchen",
     "lock": "NORTH restaurant commercial kitchen: stainless steel countertops and prep stations, a long row of hanging copper pots and pans, an industrial gas range and grill with an overhead exhaust hood, magnetic knife strip, exposed brick wall behind the line, ceramic tiled floor, high side windows with morning light — same kitchen appearance across every scene",
-    "ref": "refs/KITCHEN_MASTER.png",
+    "ref": "refs/KITCHEN_MASTER.jpg",
     "anchor": "The reference location image is the EXACT kitchen for this scene — match the stainless counters, copper pots, grill, hood, brickwork, tiling and every visible detail to that image. Do not invent or alter the location."
   }
 }
