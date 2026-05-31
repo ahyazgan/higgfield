@@ -1,75 +1,98 @@
 #!/usr/bin/env bash
-# Soccer Manager dashboard - Higgsfield nano_banana_2 ile gercek foto/asset uretimi
-# Kullanim: ./generate_dashboard.sh [asset_id]   (bos = hepsi)
+# generate_dashboard.sh — Soccer Manager dashboard asset üreticisi.
+# Asset tanımları TEK kaynak: dashboard_assets.json. Ortak altyapı: lib.sh.
 #
-# Asset id listesi:
-#   1  atm_crest         - Atletico Madrid crest (1:1)
-#   2  racing_crest      - Real Racing Club crest (1:1)
-#   3  laliga_logo       - La Liga logo (1:1)
-#   4  stadium_wanda     - Wanda Metropolitano aerial (16:9)
-#   5  manager_portrait  - Menajer Malavida portresi (1:1)
-#   6  dembele_portrait  - Dembele spotlight portresi (1:1)
-#   7  transfer_atangana - V. Atangana headshot (1:1)
-#   8  transfer_learburn - M. Learburn headshot (1:1)
-#   9  transfer_parsons  - C. Parsons headshot (1:1)
-#   10 afcon_news        - AFCON haber foto (16:9)
-#   11 ultimate_pack     - Ultimate Edition gold pack art (1:1)
-#   12 scout_illust      - Scout assignment illustration (1:1)
+# Kullanım:
+#   ./generate_dashboard.sh                 tüm asset'ler
+#   ./generate_dashboard.sh 5               sadece asset 5
+#   ./generate_dashboard.sh --dry-run       prompt'ları göster, CLI çağırma
+#   ./generate_dashboard.sh --list          asset listesini yaz
 
 set -euo pipefail
 cd "$(dirname "$0")"
+# shellcheck source=lib.sh
+source ./lib.sh
+need_cmd jq
 
-MODEL="nano_banana_2"
-OUTDIR="./out_dashboard"
-mkdir -p "$OUTDIR"
+ASSETS="dashboard_assets.json"
+OUT_ROOT="out_dashboard"
+[ -f "$ASSETS" ] || die "Asset dosyası yok: $ASSETS"
+jq empty "$ASSETS" 2>/dev/null || die "Geçersiz JSON: $ASSETS"
 
-generate_asset() {
-  local id=$1 name aspect prompt
+MODEL="${MODEL:-$(jq -r '.defaults.model' "$ASSETS")}"
+MAX_RETRY="${MAX_RETRY:-3}"
+UCOST="$(model_cost "$MODEL")"
+ARCHIVE=1; if [ "${NO_ARCHIVE:-}" = 1 ]; then ARCHIVE=0; fi
 
-  case $id in
-    1)  name="atm_crest"; aspect="1:1"
-        prompt="Atletico Madrid football club official crest, red and white vertical stripes shield, blue lower section with bear and strawberry tree, yellow star and crown details, crisp vector style logo, centered on flat dark navy background, high resolution clean rendering, professional sports branding" ;;
-    2)  name="racing_crest"; aspect="1:1"
-        prompt="Real Racing Club de Santander football crest, vertical green and white striped shield, yellow crown above, classic spanish football club logo design, vector art, clean rendering, centered on flat dark navy background, professional crest" ;;
-    3)  name="laliga_logo"; aspect="1:1"
-        prompt="La Liga official logo, modern stylized red and dark navy mark with abstract footballer silhouette, sleek minimalist sports league branding, vector art, centered on flat white background, ultra crisp rendering" ;;
-    4)  name="stadium_wanda"; aspect="16:9"
-        prompt="Wanda Metropolitano stadium aerial photograph at golden hour, modern white curved roof structure, full stadium illuminated, red Atletico Madrid colors visible in the seating bowl, surrounding Madrid suburban skyline, shot from helicopter, professional sports photography, sharp realistic detail, dramatic warm sunset light, photo-realistic" ;;
-    5)  name="manager_portrait"; aspect="1:1"
-        prompt="Professional press photo of a football team manager in his late thirties, short dark hair, clean shaven, wearing a sharp black suit jacket and white shirt, standing on the touchline of a football stadium, slight smile, looking confidently toward camera, shallow depth of field with blurred stadium crowd in background, natural daylight, sports photojournalism style, hyper realistic" ;;
-    6)  name="dembele_portrait"; aspect="1:1"
-        prompt="Professional football player portrait, athletic young man in his mid twenties wearing Paris Saint-Germain dark navy and red home jersey, short curly hair, focused intense expression, mid-action close-up during a match, shallow depth of field stadium lights bokeh background, sports press photography, hyper realistic detail, dramatic stadium lighting" ;;
-    7)  name="transfer_atangana"; aspect="1:1"
-        prompt="Football player headshot, young African footballer mid twenties wearing red and white RB Leipzig training jersey, neutral confident expression looking at camera, plain dark grey studio background, official club portrait style, sharp clean lighting, hyper realistic" ;;
-    8)  name="transfer_learburn"; aspect="1:1"
-        prompt="Football player headshot, young white British footballer early twenties wearing navy blue and white striped West Bromwich Albion home jersey, neutral expression looking at camera, plain dark grey studio background, official club portrait style, sharp clean lighting, hyper realistic" ;;
-    9)  name="transfer_parsons"; aspect="1:1"
-        prompt="Football player headshot, young footballer late teens wearing claret and blue Doncaster Rovers home jersey, neutral focused expression looking at camera, plain dark grey studio background, official club portrait style, sharp clean lighting, hyper realistic" ;;
-    10) name="afcon_news"; aspect="16:9"
-        prompt="Africa Cup of Nations football match action photograph, two African national team players competing for the ball, dramatic stadium floodlights, packed crowd of fans in colorful jerseys in background, motion blur on legs, sports photojournalism, golden trophy hint in foreground bokeh, hyper realistic press photo, vibrant warm colors" ;;
-    11) name="ultimate_pack"; aspect="1:1"
-        prompt="Premium gold collector card pack for a football manager mobile game, glossy gold metallic packaging with embossed crown and trophy emblem, glowing edges, scattered virtual coins and a shimmering football around the pack, premium loot box product render, dark navy gradient background, dramatic studio lighting, ultra high quality 3D render" ;;
-    12) name="scout_illust"; aspect="1:1"
-        prompt="Stylized illustration of a football scout with binoculars and a notebook, watching a player from the stands of a stadium, modern flat illustration style with subtle gradients, blue and orange color palette, friendly approachable mobile game UI art, clean composition centered on character, no text" ;;
-    *)  echo "Gecersiz asset id: $id" >&2; return 1 ;;
+DRY_RUN=0; ONLY=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    --list) jq -r '.assets[] | "  \(.id)\t\(.name)\t(\(.aspect))"' "$ASSETS"; exit 0 ;;
+    -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+    --*) die "Bilinmeyen seçenek: $1" ;;
+    *) ONLY="$1" ;;
   esac
+  shift
+done
 
-  echo "==> [$id] $name uretiliyor ($aspect)"
+RUN_DIR="$(new_run_dir "$OUT_ROOT" "assets")"
+MANIFEST="$RUN_DIR/manifest.csv"
+manifest_init "$MANIFEST"
+log "Koşu dizini: $RUN_DIR"
+
+run_cli() {
+  local prompt=$1 aspect=$2 rfile=$3
   higgsfield generate create "$MODEL" \
     --prompt "$prompt" \
     --aspect_ratio "$aspect" \
-    --wait \
-    > "$OUTDIR/${name}.txt"
-  echo "    -> $OUTDIR/${name}.txt"
+    --wait > "${rfile}.tmp" 2>&1 && mv -f "${rfile}.tmp" "$rfile"
 }
 
-if [ $# -ge 1 ]; then
-  generate_asset "$1"
+generate_asset() {
+  local id=$1
+  local a; a="$(jq -c --argjson id "$id" '.assets[] | select(.id==$id)' "$ASSETS")"
+  [ -n "$a" ] || die "Geçersiz asset id: $id"
+  local name aspect prompt
+  name="$(jq -r '.name'   <<<"$a")"
+  aspect="$(jq -r '.aspect' <<<"$a")"
+  prompt="$(jq -r '.prompt' <<<"$a")"
+
+  local pfile="$RUN_DIR/${name}.prompt.txt"
+  local rfile="$RUN_DIR/${name}.result.txt"
+  printf 'aspect=%s model=%s\n\n%s\n' "$aspect" "$MODEL" "$prompt" | atomic_write "$pfile"
+
+  if [ "$DRY_RUN" = 1 ]; then
+    log "[dry-run] [$id] $name ($aspect) — $pfile"
+    manifest_append "$MANIFEST" "dashboard" "$name" "1" "$MODEL" "$aspect" "-" "" "dry-run" "-" "$(basename "$pfile")" "$UCOST"
+    return 0
+  fi
+
+  log "[$id] $name ($aspect) üretiliyor"
+  local status="ok"
+  if with_retry "$MAX_RETRY" run_cli "$prompt" "$aspect" "$rfile"; then
+    info "URL: $(extract_url "$rfile" || echo '?')"
+    if [ "$ARCHIVE" = 1 ]; then
+      local u saved; u="$(extract_url "$rfile" || true)"
+      if [ -n "$u" ]; then
+        saved="$(archive_result "$u" "$RUN_DIR/$name" || true)"
+        if [ -n "$saved" ]; then info "arşivlendi: $(basename "$saved")"; else warn "$name: arşivlenemedi (curl yok / indirme hatası)"; fi
+      fi
+    fi
+  else
+    status="FAILED"; warn "[$id] $name üretilemedi."
+  fi
+  local cost="$UCOST"; [ "$status" = "ok" ] || cost=0
+  manifest_append "$MANIFEST" "dashboard" "$name" "1" "$MODEL" "$aspect" "-" "" "$status" "$(basename "$rfile")" "$(basename "$pfile")" "$cost"
+}
+
+if [ -n "$ONLY" ]; then
+  generate_asset "$ONLY"
 else
-  for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
-    generate_asset "$i"
+  for id in $(jq -r '.assets[].id' "$ASSETS"); do
+    generate_asset "$id"
   done
 fi
 
-echo ""
-echo "Bitti. Sonuc URL'leri $OUTDIR/*.txt icinde."
+log "Bitti. Manifest: $MANIFEST"
+[ "$DRY_RUN" = 1 ] || info "Galeri için: ./contact_sheet.sh $RUN_DIR"

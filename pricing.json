@@ -1,0 +1,10 @@
+{
+  "_comment": "Model başına TAHMİNİ birim üretim maliyeti. Gerçek rakamları higgsfield faturandan/planından doldur. Bilinmeyen model 0 sayılır (uyarı verilir). currency sadece raporlama etiketidir.",
+  "currency": "USD",
+  "models": {
+    "nano_banana_2": 0.0,
+    "seedance": 0.0,
+    "kling": 0.0,
+    "veo": 0.0
+  }
+}
