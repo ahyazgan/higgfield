@@ -29,7 +29,8 @@
           "title": "Sokakta Yürüyor",
           "location": "north_ext",
           "camera": "behind",
-          "framing": "camera floating 3 meters behind at 1.7m height, character in lower-center of frame",
+          "framing_cinema": "camera floating 3 meters behind at 1.7m height, character in lower-center of frame",
+          "framing_reels": "camera 2.5 meters behind at 1.6m height, character in lower-center of frame, vertical composition, natural headroom above, the NORTH building and street stacked above with vertical depth",
           "action": "character walking forward down the street, relaxed confident stride, arms natural at sides",
           "environment": "narrow Miami Little Havana street, old red brick and pastel buildings on both sides, cobblestone sidewalk, NORTH restaurant visible ahead in the distance, vintage 1960s American cars parked along the curb, palm trees, overhead cables, golden late afternoon sunlight"
         },
@@ -38,7 +39,8 @@
           "title": "NORTH'a Yaklaşıyor",
           "location": "north_ext",
           "camera": "front_lead",
-          "framing": "camera 3 meters ahead of the character at chest height 1.4m, dollying backward as he walks toward it, character centered and facing forward, face clearly lit and visible",
+          "framing_cinema": "camera 3 meters ahead of the character at chest height 1.4m, dollying backward as he walks toward it, character centered and facing forward, face clearly lit and visible",
+          "framing_reels": "camera 2.5 meters ahead at chest height 1.4m dollying backward, character centered facing forward filling the lower-center of the vertical frame, face clearly lit, vertical portrait framing, the street and buildings stacked above with natural headroom",
           "action": "character walking toward the NORTH entrance, approaching with a calm confident stride, eyes on the doorway just past the camera",
           "environment": "the narrow Miami Little Havana street stretching out behind the character, old red brick and pastel buildings on both sides, vintage 1960s American cars parked along the curb, palm trees and overhead cables, warm amber glow from the NORTH doorway washing over his face from the camera side, golden late afternoon backlight rimming his shoulders"
         },
@@ -47,7 +49,8 @@
           "title": "Kapıyı Açıyor",
           "location": "north_ext",
           "camera": "behind",
-          "framing": "camera floating 2.5 meters behind at 1.7m height, character in center-left of frame",
+          "framing_cinema": "camera floating 2.5 meters behind at 1.7m height, character in center-left of frame",
+          "framing_reels": "camera 2 meters behind at 1.6m height, character in lower-center of frame, vertical composition, natural headroom above, the NORTH door and brick facade rising above with vertical depth",
           "action": "character standing at the NORTH door, right hand reaching out to push the door open, door beginning to swing inward",
           "environment": "NORTH black wooden door directly ahead, brass handle, red brick facade around the door, NORTH sign above, terracotta plant pots on the sides, warm amber light spilling from the opening door, cobblestone underfoot, golden afternoon light"
         },
@@ -56,7 +59,8 @@
           "title": "İçeri Giriyor",
           "location": "north_int",
           "camera": "behind",
-          "framing": "camera floating 2.5 meters behind at 1.7m height, following the character into the building, character in center of frame",
+          "framing_cinema": "camera floating 2.5 meters behind at 1.7m height, following the character into the building, character in center of frame",
+          "framing_reels": "camera 2 meters behind at 1.6m height following the character into the building, character in lower-center of frame, vertical composition, the high beamed interior stacked above, vertical depth, natural headroom above",
           "action": "character walking into the empty restaurant, stepping forward into the space",
           "environment": "abandoned empty restaurant interior, exposed weathered red brick walls, high ceiling with old wooden beams, overturned wooden tables and scattered chairs, dust particles floating in the afternoon light, large window on the right with golden light streaming in, empty bar counter at the back"
         },
@@ -65,7 +69,8 @@
           "title": "Mekanın Ortasında",
           "location": "north_int",
           "camera": "high_establishing",
-          "framing": "camera elevated 2.5m behind looking down the length of the tall room, vertical framing with the high beamed ceiling rising above and the character standing clearly in the mid-lower frame, deep perspective into the space",
+          "framing_cinema": "camera 4 meters behind at 2m height angled downward, ultra wide angle showing the entire room, character in lower-center small in the vast space",
+          "framing_reels": "camera elevated 2.5m behind looking down the tall room, character in lower-center of the vertical frame with the high beamed ceiling and brick walls rising above, environment visible above and around character, vertical depth, natural headroom",
           "action": "character standing still in the center of the empty restaurant, looking around the abandoned space, arms relaxed at sides",
           "environment": "vast abandoned restaurant interior surrounding the character, high ceiling with exposed dark wooden beams, weathered red brick walls all around, overturned tables and scattered chairs, dramatic golden light beams through the right window, dust particles, old framed photographs on the walls, empty bar counter at the back, sense of scale and emptiness"
         },
@@ -74,7 +79,8 @@
           "title": "Duruyor, Karar",
           "location": "north_int",
           "camera": "intro_hero",
-          "framing": "camera low at 0.8m height about 2 meters in front of the character angled upward, three-quarter front hero framing, the face lit by the window light, character filling the central frame",
+          "framing_cinema": "camera low at 0.8m height about 2 meters in front of the character angled upward, three-quarter front hero framing, the face lit by the window light, character filling the central frame",
+          "framing_reels": "camera low at 0.8m height about 1.5 meters in front angled upward, three-quarter front hero framing, the face lit, character filling the lower-center of the vertical frame with the beamed ceiling and light above, vertical portrait composition, natural headroom",
           "action": "character standing still in the center of the empty space, gazing off toward the window light, slight lift of the chin, contemplative confident posture taking it all in",
           "environment": "abandoned restaurant interior framing him from the front, weathered red brick walls and exposed wooden beams behind him, dramatic golden light beams from the side window raking across his face, dust particles drifting in the air, empty space full of potential"
         }
@@ -89,7 +95,8 @@
           "title": "Mutfak Girişi",
           "location": "north_kitchen",
           "camera": "high_establishing",
-          "framing": "camera elevated 2.5m at a 30 degree downward angle, vertical framing, the character prominent in the mid-frame pushing through the swing doors, the bright stainless kitchen stretching upward beyond",
+          "framing_cinema": "camera elevated at 3 meters height looking down at a 30 degree angle, character framed in the lower portion of a wide frame, doors swinging open in the foreground",
+          "framing_reels": "camera elevated 2.5m at a 30 degree downward angle, character prominent in the lower-center of the vertical frame pushing through the swing doors, the bright stainless kitchen stacked above, vertical depth, environment visible above and around character",
           "action": "character pushing through double swing kitchen doors from the dining room into the kitchen, both arms raised pushing the doors outward, stepping forward, dynamic stride",
           "environment": "restaurant kitchen entrance from the dining side, double wooden swing doors with round porthole windows in the foreground opening into a bright stainless-steel commercial kitchen seen from above, polished steel countertops stretching back, long row of hanging copper pots and pans, gas range and grill far back, ceramic checkerboard floor tiles, early morning sunlight from high side windows casting long shadows, dust in the light beams"
         },
@@ -98,7 +105,8 @@
           "title": "Önlüğü Bağlıyor",
           "location": "north_kitchen",
           "camera": "low_intimate",
-          "framing": "camera very close 1.2 meters behind at waist height 1.0m, slight 5 degree dutch tilt, tight cropped frame on the upper back and the hands tying the knot",
+          "framing_cinema": "camera very close 1.2 meters behind at waist height 1.0m, slight 5 degree dutch tilt, tight cropped frame on the upper back and the hands tying the knot",
+          "framing_reels": "camera very close 1.2 meters behind at waist height 1.0m, slight 5 degree dutch tilt, tight vertical frame on the upper back and the hands tying the knot in the lower-center, natural headroom above, vertical portrait framing",
           "action": "character standing at a stainless steel prep counter facing away, both arms bent sharply backward, hands behind his back tying the chef apron strap into a tight knot at the small of his back, apron straps crossing visibly on his back",
           "environment": "extreme closeup of a commercial kitchen prep zone, focus on the rough black canvas apron straps and the knot being tied at the small of the back, white cotton t-shirt fabric and silver watch visible, blurred background of stainless steel counter and hanging copper pots, warm side window light raking across the back, intimate quiet moment"
         },
@@ -107,7 +115,8 @@
           "title": "Izgara Ateşi",
           "location": "north_kitchen",
           "camera": "low_side_action",
-          "framing": "camera at ground level 0.6m height to the LEFT side of the character at 1.5 meters distance, three-quarter back side-profile, character silhouetted against the bright grill flames",
+          "framing_cinema": "camera at ground level 0.6m height to the LEFT side of the character at 1.5 meters distance, three-quarter back side-profile, character silhouetted against the bright grill flames",
+          "framing_reels": "camera at ground level 0.6m height to the left side of the character at 1.5 meters, three-quarter back side-profile, character in the lower-center of the vertical frame silhouetted against the grill flames, the exhaust hood and brick wall stacked above, vertical composition with depth",
           "action": "character crouched in front of a large industrial gas grill, right hand on the gas valve knob, head turned slightly toward the grill, blue and orange flames just igniting and licking up under the cast iron grates",
           "environment": "kitchen grill station seen from a low side angle, massive stainless industrial gas grill dominating the frame, blue and orange ignition flames bursting along the burner row, smoke just starting, suspended exhaust hood overhead, dark exposed brick wall behind the grill, rack of copper saucepans on the side wall, dim warm tungsten kitchen light contrasting with the bright flame"
         },
@@ -116,7 +125,8 @@
           "title": "Tezgahta Sebze Doğruyor",
           "location": "north_kitchen",
           "camera": "over_shoulder_topdown",
-          "framing": "camera just above and behind the right shoulder at 1.9m height angled steeply downward 50 degrees onto the cutting board, knife and hands filling the lower foreground, head visible at the top of frame from behind",
+          "framing_cinema": "camera just above and behind the right shoulder at 1.9m height angled steeply downward 50 degrees onto the cutting board, knife and hands filling the lower foreground, head visible at the top of frame from behind",
+          "framing_reels": "camera just above and behind the right shoulder at 1.9m height angled steeply downward 50 degrees onto the cutting board, knife and hands filling the lower-center vertical foreground, head at the top of frame, vertical portrait framing, space above for the counter and ingredients",
           "action": "character standing at a wooden prep board, chef knife gripped in the right hand in a mid downstroke slicing through a red bell pepper, left hand curled holding the pepper, focused downward gaze, motion blur on the knife edge",
           "environment": "prep station seen top-down over-shoulder, large worn wooden cutting board centered, vivid fresh ingredients laid out — red and yellow bell peppers half-sliced, whole tomatoes, white onion, garlic cloves, sprigs of parsley and thyme, a sharp German chef knife mid-cut, stainless counter edge at the top, neat mise en place"
         },
@@ -125,7 +135,8 @@
           "title": "Salonu Kontrol Ediyor",
           "location": "north_int",
           "camera": "side_track",
-          "framing": "camera 2.5 meters to the side moving parallel to the walk, character in profile mid-frame walking left to right, long row of tables receding behind into deep perspective",
+          "framing_cinema": "camera 2.5 meters to the side moving parallel to the walk, character in profile mid-frame walking left to right, long row of tables receding behind into deep perspective",
+          "framing_reels": "camera slightly to the side at 1.6m height moving parallel to the walk, character in the lower-center of the vertical frame in profile walking, the tables, pendant lights and beamed ceiling stacked above, environment visible above and around character, vertical depth",
           "action": "character walking slowly through the restored empty dining room down the center aisle between tables, mid stride, left hand brushing the back of a wooden chair, head turned slightly inspecting place settings",
           "environment": "NORTH restaurant dining room restored and dressed for service, two long rows of wooden tables with crisp white linen tablecloths and place settings stretching into the background, vintage industrial pendant lights glowing warm amber overhead, exposed weathered red brick walls on both sides, polished hardwood floor reflecting light, large windows on the right pouring golden morning light at a low angle, dust motes in the beams"
         },
@@ -134,7 +145,8 @@
           "title": "Pencerede Bekleyiş",
           "location": "north_int",
           "camera": "pullback",
-          "framing": "camera back 4 meters at 2m height, vertical framing, the character standing against the tall bright NORTH window in the mid-frame, the dining room and high beamed ceiling stacked around and above him, sense of stillness",
+          "framing_cinema": "camera far back 8 meters at 2.5m height slowly drifting backward and upward, character very small in the lower third standing against the bright window, the whole dining room sprawling around him",
+          "framing_reels": "camera back 3 meters at 1.8m height, character standing in the lower-center of the vertical frame against the tall bright NORTH window, the dining room and high beamed ceiling rising above, vertical composition with depth, natural headroom",
           "action": "character standing absolutely still in front of the large NORTH front window looking out at the street, both thumbs hooked into the front pockets of the apron, shoulders relaxed, head slightly tilted, contemplative posture before opening",
           "environment": "vast NORTH restaurant dining room in ultra wide composition, character a small silhouette far across the room against the bright morning window with cobblestone street outside and the backwards NORTH sign on the glass, two rows of dressed tables flanking him receding from camera, warm pendant lights, exposed red brick walls left and right, hardwood floor with parallel light streaks, drifting dust particles, profound stillness of a space waiting to be opened"
         }

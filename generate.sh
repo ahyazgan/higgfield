@@ -112,6 +112,30 @@ load_mission() {
   [ "$CHAR_DESC" != "null" ] || die "Karakter preset'i yok: $CHAR_ID"
 }
 
+# ---- Framing seçimi (platform'a göre) --------------------------------------
+# cinema (16:9) framing'i reels (9:16) için otomatik dönüştürür:
+#   lower-left/right third -> lower-center ; "16:9" referanslarını kaldır ; dikey ekle.
+reels_from_cinema() {
+  local f=$1
+  f="$(printf '%s' "$f" | sed -E 's/lower-(left|right) third/lower-center/Ig; s/16:9//Ig; s/  +/ /g; s/ +,/,/g')"
+  printf '%s, vertical composition, natural headroom above' "$f"
+}
+# Platform reels ise framing_reels, cinema ise framing_cinema. reels'te alan yoksa
+# cinema'dan otomatik dönüştür. (eski tek 'framing' alanı da geriye-uyum için desteklenir.)
+select_framing() {
+  local s=$1 f
+  if [ "$PLATFORM" = "reels" ]; then
+    f="$(jq -r '.framing_reels // empty' <<<"$s")"
+    if [ -z "$f" ]; then
+      f="$(jq -r '.framing_cinema // .framing // empty' <<<"$s")"
+      f="$(reels_from_cinema "$f")"
+    fi
+  else
+    f="$(jq -r '.framing_cinema // .framing // empty' <<<"$s")"
+  fi
+  printf '%s' "$f"
+}
+
 # ---- Prompt kurucu ---------------------------------------------------------
 # Sahne alanlarını okur, blokları çakışmayacak tek bir sırayla birleştirir.
 # Sonuçları global'e değil, isimli değişkenlere yazar; her sahne için baştan kurulur.
@@ -125,7 +149,7 @@ build_scene() {
   local loc_id cam_id framing action env
   loc_id="$(jq -r '.location'  <<<"$s")"
   cam_id="$(jq -r '.camera'    <<<"$s")"
-  framing="$(jq -r '.framing'  <<<"$s")"
+  framing="$(select_framing "$s")"      # platform'a göre framing_reels / framing_cinema
   action="$(jq -r '.action'    <<<"$s")"
   env="$(jq -r '.environment' <<<"$s")"
 
@@ -279,6 +303,16 @@ run_check_one() {
   scenes="$(jqm ".missions.\"$m\".scenes[].id")"
   for sc in $scenes; do
     build_scene "$m" "$sc"
+    # Reels uygunluk uyarısı: platform reels iken uygunsuz kamera modu (engellemez)
+    if [ "$PLATFORM" = "reels" ]; then
+      local cam suit
+      cam="$(jqm ".missions.\"$m\".scenes[]|select(.id==$sc)|.camera")"
+      # NOT: jq '//' boolean false'ı boş sayar; has() ile açıkça kontrol et.
+      suit="$(jq -r --arg c "$cam" 'if (.reels_suitable | has($c)) then (.reels_suitable[$c] | tostring) else "true" end' "$PRESETS_CAM" 2>/dev/null)"
+      if [ "$suit" = "false" ]; then
+        warn "M$m s$sc: kamera modu '$cam' Reels (9:16) için uygun değil — dikeyde kompozisyon kaybedebilir (sadece uyarı)."
+      fi
+    fi
     # ref kontrolü — eksik ref config hatası DEĞİL, asset hazırlık uyarısıdır
     # (gerçek üretim yine de ref'i şart koşar). Bu yüzden preflight'ı düşürmez.
     for img in "$FACE_REF" "$LOC_REF"; do

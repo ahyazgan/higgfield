@@ -242,14 +242,28 @@ archive_result() {
 # ---- Son kare çıkarma (last-frame chaining) --------------------------------
 # chain_lastframe <klip_url> <çıktı_jpg>  — klibi indirir, SON karesini görsele yazar.
 # ffmpeg + curl yoksa 1 döner (zincir kırılır, çağıran kendi still'ine düşer).
+# Son kare KAYNAK en-boy oranını korur (9:16 dikeyde kompozisyon kaymasın); kaydedilen
+# JPEG boyutu kaynaktan farklıysa (ffprobe varsa) uyarır.
 chain_lastframe() {
   local url=$1 out=$2 tmp
   command -v curl   >/dev/null 2>&1 || return 1
   command -v ffmpeg >/dev/null 2>&1 || return 1
   tmp="$(mktemp --suffix=.mp4)" || return 1
   if ! with_retry 3 curl -fsSL "$url" -o "$tmp"; then rm -f "$tmp"; return 1; fi
-  # -sseof -0.1: sondan ~0.1s, son kareyi yakala
-  ffmpeg -y -sseof -0.1 -i "$tmp" -frames:v 1 -q:v 2 "$out" >/dev/null 2>&1 || { rm -f "$tmp"; return 1; }
+  # -sseof -0.1: sondan ~0.1s; -vf scale=iw:ih:...disable -> kaynak en-boy oranını birebir koru
+  if ! ffmpeg -y -sseof -0.1 -i "$tmp" -frames:v 1 -q:v 2 \
+       -vf "scale=iw:ih:force_original_aspect_ratio=disable" "$out" >/dev/null 2>&1; then
+    rm -f "$tmp"; return 1
+  fi
+  # Boyut doğrulama: çıkan JPEG kaynak videoyla aynı en-boy oranında mı?
+  if command -v ffprobe >/dev/null 2>&1 && [ -f "$out" ]; then
+    local sd od
+    sd="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$tmp" 2>/dev/null)"
+    od="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$out" 2>/dev/null)"
+    if [ -n "$sd" ] && [ -n "$od" ] && [ "$sd" != "$od" ]; then
+      warn "chain: son kare boyutu kaynaktan farklı ($sd -> $od) — kompozisyon/aspect kaymış olabilir"
+    fi
+  fi
   rm -f "$tmp"
   [ -f "$out" ]
 }
