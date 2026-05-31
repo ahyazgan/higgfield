@@ -1,0 +1,31 @@
+{
+  "_comment": "Video modeli ADAPTÖR katmanı. Her model kendi başlangıç-görsel flag'ini (start_flag) ve KABUL ETTİĞİ parametreleri (param adı -> CLI flag adı) bildirir. to_video.sh seçili VMODEL'in adaptörünü okuyup YALNIZCA o modelin desteklediği flag'leri gönderir — böylece bir modelde olmayan parametre (fps, negative gibi) 'Unknown params' hatası vermez. Yeni model eklemek = buraya bir kayıt eklemek (kod değişmez). Parametreler `higgsfield model get <model>` ile doğrulandı (2026-05-31).",
+  "_note": "Hiçbir video modeli fps veya negative-prompt KABUL ETMİYOR — bu yüzden adaptörlerde yoklar. Değer kaynakları: duration<-defaults.video.duration, aspect_ratio<-defaults.aspect_ratio, resolution<-defaults.video.resolution.",
+  "default": "seedance_2_0",
+  "models": {
+    "seedance_2_0": {
+      "start_flag": "--start-image",
+      "params": { "duration": "--duration", "aspect_ratio": "--aspect_ratio", "resolution": "--resolution" }
+    },
+    "seedance1_5": {
+      "start_flag": "--start-image",
+      "params": { "duration": "--duration", "aspect_ratio": "--aspect_ratio", "resolution": "--resolution" }
+    },
+    "kling2_6": {
+      "start_flag": "--start-image",
+      "params": { "duration": "--duration", "aspect_ratio": "--aspect_ratio" }
+    },
+    "kling3_0": {
+      "start_flag": "--start-image",
+      "params": { "duration": "--duration", "aspect_ratio": "--aspect_ratio" }
+    },
+    "veo3_1": {
+      "start_flag": "--start-image",
+      "params": { "duration": "--duration", "aspect_ratio": "--aspect_ratio" }
+    },
+    "veo3": {
+      "start_flag": "--start-image",
+      "params": { "duration": "--duration", "aspect_ratio": "--aspect_ratio" }
+    }
+  }
+}

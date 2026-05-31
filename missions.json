@@ -8,8 +8,9 @@
     "style": "shot on iPhone 15 Pro Max, natural light, slight grain, candid documentary style, no filters, hyperrealistic, real phone snapshot, authentic moment",
     "negative": "selfie, front-facing portrait, character's face toward camera, looking at the camera, eye contact, cinematic color grade, studio lighting, illustration, cartoon, anime, 3d render, cgi, plastic skin, distorted hands, extra fingers, deformed body",
     "video": {
-      "model": "seedance",
+      "model": "seedance_2_0",
       "duration": 5,
+      "resolution": "720p",
       "fps": 24,
       "common_motion": "subtle natural motion, preserve character identity and location exactly, no morphing, no warping, keep the same building and same face, stable consistent style",
       "negative": "face turning toward camera, character looking at camera, identity change, face morph, building changing, flicker, warping, melting, extra limbs, jitter"

@@ -10,7 +10,7 @@
 #   ./to_video.sh --chain out/latest          # last-frame chaining (akıcı tek-çekim)
 #
 # Model esnek: VIDEO_MODEL env veya missions.json .defaults.video.model (vars. seedance).
-# Flag adları (--start-image/--duration/--fps) sürümle değişebilir; --help ile doğrula.
+# Model flag'leri presets/video_models.json adaptöründen kurulur (modele göre değişir).
 
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -19,6 +19,7 @@ source ./lib.sh
 need_cmd jq
 
 PRESETS_CAM="presets/cameras.json"
+PRESETS_VID="presets/video_models.json"
 MISSIONS="missions.json"
 OUT_ROOT="out_video"
 
@@ -45,18 +46,29 @@ SEL_FILE="$STILLS_DIR/selection.json"
 jqm() { jq -r "$1" "$MISSIONS"; }
 VMODEL="${VIDEO_MODEL:-$(jqm '.defaults.video.model')}"
 DURATION="$(jqm '.defaults.video.duration')"
-FPS="$(jqm '.defaults.video.fps')"
 ASPECT="${ASPECT:-$(jqm '.defaults.aspect_ratio')}"
+VRES="$(jqm '.defaults.video.resolution')"            # 480p/720p/1080p (modele göre)
 COMMON_MOTION="$(jqm '.defaults.video.common_motion')"
-VNEG="$(jqm '.defaults.video.negative')"
 MAX_RETRY="${MAX_RETRY:-3}"
 UCOST="$(model_cost "$VMODEL")"; CUR="$(currency)"
 ARCHIVE=1; if [ "${NO_ARCHIVE:-}" = 1 ]; then ARCHIVE=0; fi
 
+# ---- Adaptör: seçili video modelinin gerçek flag'leri ----------------------
+[ -f "$PRESETS_VID" ] || die "Video adaptör config'i yok: $PRESETS_VID"
+jq empty "$PRESETS_VID" 2>/dev/null || die "Geçersiz JSON: $PRESETS_VID"
+START_FLAG="$(jq -r --arg m "$VMODEL" '.models[$m].start_flag // empty' "$PRESETS_VID")"
+if [ -z "$START_FLAG" ]; then
+  warn "'$VMODEL' için adaptör yok ($PRESETS_VID) — varsayılan flag'lerle deniyorum (--start-image/--duration/--aspect_ratio). Doğrula: higgsfield model get $VMODEL"
+  START_FLAG="--start-image"
+  VVALID=0
+else
+  VVALID=1
+fi
+
 RUN_DIR="$(new_run_dir "$OUT_ROOT" "clips")"
 MANIFEST="$RUN_DIR/manifest.csv"
 manifest_init "$MANIFEST"
-log "Video modeli: $VMODEL | süre ${DURATION}s @ ${FPS}fps | kaynak: $STILLS_DIR"
+log "Video modeli: $VMODEL | süre ${DURATION}s | kaynak: $STILLS_DIR"
 log "Koşu dizini: $RUN_DIR"
 
 # Sahne için motion prompt'u kurar (tek kaynak: missions.json + cameras.json)
@@ -73,16 +85,34 @@ build_motion() {
   MOTION_PROMPT="${action}, ${move}, ${COMMON_MOTION}"
 }
 
+# Adaptörden CLI argümanlarını kurar (yalnızca modelin desteklediği parametreler).
+# Değer kaynakları: duration<-DURATION, aspect_ratio<-ASPECT, resolution<-VRES.
+build_video_args() {
+  local start=$1
+  VARGS=(generate create "$VMODEL" --prompt "$MOTION_PROMPT" "$START_FLAG" "$start")
+  if [ "$VVALID" = 1 ]; then
+    local pk flag val
+    while IFS=$'\t' read -r pk flag; do
+      [ -z "$pk" ] && continue
+      case "$pk" in
+        duration)     val="$DURATION" ;;
+        aspect_ratio) val="$ASPECT" ;;
+        resolution)   val="$VRES" ;;
+        *)            val="" ;;
+      esac
+      [ -n "$val" ] && [ "$val" != "null" ] && VARGS+=("$flag" "$val")
+    done < <(jq -r --arg m "$VMODEL" '.models[$m].params // {} | to_entries[] | "\(.key)\t\(.value)"' "$PRESETS_VID")
+  else
+    # adaptörsüz güvenli varsayılan
+    VARGS+=(--duration "$DURATION" --aspect_ratio "$ASPECT")
+  fi
+  VARGS+=(--wait)
+}
+
 run_cli() {
   local start=$1 rfile=$2
-  higgsfield generate create "$VMODEL" \
-    --prompt "$MOTION_PROMPT" \
-    --negative-prompt "$VNEG" \
-    --start-image "$start" \
-    --duration "$DURATION" \
-    --fps "$FPS" \
-    --aspect_ratio "$ASPECT" \
-    --wait > "${rfile}.tmp" 2>&1 && mv -f "${rfile}.tmp" "$rfile"
+  build_video_args "$start"
+  higgsfield "${VARGS[@]}" > "${rfile}.tmp" 2>&1 && mv -f "${rfile}.tmp" "$rfile"
 }
 
 clip_one() {
@@ -121,9 +151,11 @@ clip_one() {
 
   local mfile="$RUN_DIR/${base}.motion.txt"
   local rfile="$RUN_DIR/${base}.clip.txt"
+  build_video_args "${start:-<START>}"   # kayıt için adaptör-çözümlenmiş gerçek flag'ler
   {
-    printf 'source_still=%s\nstart_image=%s (%s)\nvideo_model=%s duration=%s fps=%s\n\nMOTION:\n%s\n\nNEGATIVE:\n%s\n' \
-      "$base" "${start:-<yok>}" "$start_label" "$VMODEL" "$DURATION" "$FPS" "$MOTION_PROMPT" "$VNEG"
+    printf 'source_still=%s\nstart_image=%s (%s)\nvideo_model=%s duration=%s aspect=%s res=%s\n' \
+      "$base" "${start:-<yok>}" "$start_label" "$VMODEL" "$DURATION" "$ASPECT" "$VRES"
+    printf 'cli=higgsfield %s\n\nMOTION:\n%s\n' "${VARGS[*]}" "$MOTION_PROMPT"
   } | atomic_write "$mfile"
 
   if [ "$DRY_RUN" = 1 ]; then
