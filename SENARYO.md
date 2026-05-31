@@ -124,3 +124,42 @@ hyperrealistic, real phone snapshot, authentic moment
 - ASLA selfie / portre / karşıdan.
 - "GTA V third person gameplay camera" her promptta.
 - Karakter sabit (Soul ID) + Mekan sabit (master referans görseli).
+
+---
+
+# NORTH — Mission 02: Hazırlık Sabahı
+
+> Mission 01'in devamı. Jay restoranı restore etmiş, açılış sabahı.
+> Hep arkadan, hep INTERIOR_MASTER + JAY_FACE referansı.
+
+## 🎬 SAHNELER
+
+### SAHNE 1 — Mutfak Girişi
+- **Aksiyon:** Jay salondan mutfağa açılan çift kanat swing kapıdan içeri itiyor, iki kolu hafif kalkmış.
+- **Kamera:** 2.5 m arkada, 1.7 m, swing kapılar önde açılıyor.
+- **Mekan:** Mutfak girişi — yuvarlak lombozlu ahşap swing kapılar, paslanmaz tezgahlar, asılı bakır tencereler, gaz ocak, sabah ışığı.
+
+### SAHNE 2 — Önlüğü Bağlıyor
+- **Aksiyon:** Tezgah önünde, iki el arkada, önlük kemerini düğümlüyor. Sırttaki çapraz askılar görünür.
+- **Kamera:** 2 m arkada, 1.6 m, belin arka detayına odak.
+- **Mekan:** Mutfak prep alanı — paslanmaz tezgah, yukarıda bakır tencereler, mıknatıs şeritte bıçaklar, kesme tahtaları.
+
+### SAHNE 3 — Izgara Ateşi
+- **Aksiyon:** Endüstriyel ızgaranın önünde hafif çömelmiş, sağ el gaz vanası, mavi-turuncu alev tutuşuyor.
+- **Kamera:** 2 m arkada, 1.5 m, omuz üstü hafif alt açı.
+- **Mekan:** Izgara istasyonu — paslanmaz endüstriyel gaz ızgara, döküm demir ızgara teli, davlumbaz, arkada tuğla duvar.
+
+### SAHNE 4 — Tezgahta Sebze Doğruyor
+- **Aksiyon:** Ahşap kesme tahtasında, sağ elde şef bıçağı hareket halinde, sebze doğruyor.
+- **Kamera:** 2 m arkada, 1.6 m, omuz üstü hafif aşağı.
+- **Mekan:** Prep istasyonu — büyük ahşap kesme tahtası, taze domates/soğan/biber/bitki, paslanmaz tezgah.
+
+### SAHNE 5 — Salonu Kontrol Ediyor
+- **Aksiyon:** Restore edilmiş salon — masalar arasında yavaş yürüyor, eli sandalye arkalığına dokunuyor.
+- **Kamera:** 3 m arkada, 1.7 m, perspektifte tablolar.
+- **Mekan:** Restore NORTH salonu — beyaz örtülü ahşap masalar, vintage endüstriyel pendant ışıklar, tuğla duvarlar, pencereden altın sabah ışığı.
+
+### SAHNE 6 — Pencerede Bekleyiş (cutscene)
+- **Aksiyon:** Büyük pencere önünde durur, dışarı bakar, eller önlük cebinde.
+- **Kamera:** CUTSCENE — 2 m arkada, 1.6 m, sağ tarafta pencere ve sokak.
+- **Mekan:** Pencerden cam üzerinden ters NORTH yazısı, sokakta altın sabah ışığı, arkada boş hazır salon, havada toz parçacıkları.
