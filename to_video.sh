@@ -50,6 +50,7 @@ COMMON_MOTION="$(jqm '.defaults.video.common_motion')"
 VNEG="$(jqm '.defaults.video.negative')"
 MAX_RETRY="${MAX_RETRY:-3}"
 UCOST="$(model_cost "$VMODEL")"; CUR="$(currency)"
+ARCHIVE=1; if [ "${NO_ARCHIVE:-}" = 1 ]; then ARCHIVE=0; fi
 
 RUN_DIR="$(new_run_dir "$OUT_ROOT" "clips")"
 MANIFEST="$RUN_DIR/manifest.csv"
@@ -141,6 +142,13 @@ clip_one() {
   local status="ok"
   if with_retry "$MAX_RETRY" run_cli "$start" "$rfile"; then
     info "Klip URL: $(extract_url "$rfile" || echo '?')"
+    if [ "$ARCHIVE" = 1 ]; then
+      local cu2 saved2; cu2="$(extract_url "$rfile" || true)"
+      if [ -n "$cu2" ]; then
+        saved2="$(archive_result "$cu2" "$RUN_DIR/$base.clip" || true)"
+        if [ -n "$saved2" ]; then info "arşivlendi: $(basename "$saved2")"; else warn "$base: klip arşivlenemedi (curl yok / indirme hatası)"; fi
+      fi
+    fi
     if [ "$CHAIN" = 1 ]; then
       local cu lf; cu="$(extract_url "$rfile" || true)"
       lf="$RUN_DIR/${base}.lastframe.jpg"

@@ -103,6 +103,11 @@ python3 serve.py                     # yerel web paneli -> http://127.0.0.1:8000
 
 Ortam değişkeniyle override: `MODEL`, `ASPECT`, `RESOLUTION`, `SEED`, `MAX_RETRY`,
 `VIDEO_MODEL` (varsayılan `seedance` — `missions.json .defaults.video`).
+
+> **Otomatik arşivleme:** Üretilen görsel/video, sonuç URL'sinden hemen diske
+> indirilir (`out/<koşu>/<base>.png|mp4`). Higgsfield URL'leri süreli olduğu için
+> bu, ürettiğinin link ölünce kaybolmasını önler. Contact-sheet de varsa yerel
+> arşivi kullanır. Kapatmak için `--no-archive` veya `NO_ARCHIVE=1`.
 Örn. ucuz taslak: `RESOLUTION=1k ./generate.sh 01`.
 
 ## Yeni içerik eklemek (kod yazmadan)

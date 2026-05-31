@@ -146,6 +146,26 @@ mutex_check() {
 # ---- URL çıkarma (sonuç dosyasından) ---------------------------------------
 extract_url() { grep -oE 'https?://[^[:space:]"]+' "$1" 2>/dev/null | head -n1; }
 
+# ---- Sonuç arşivleme (süreli URL -> kalıcı dosya) --------------------------
+# archive_result <url> <dest_no_ext>  -> indirilen dosya yolunu stdout'a yazar.
+# curl yoksa veya indirme başarısızsa rc!=0 ve boş çıktı (çağıran uyarır).
+archive_result() {
+  local url=$1 dest=$2 ext out
+  command -v curl >/dev/null 2>&1 || return 1
+  # uzantıyı URL'den çıkar (sorgu parametrelerini at)
+  ext="$(printf '%s' "$url" | sed -E 's/[?#].*$//; s/.*\.//')"
+  case "$ext" in
+    png|jpg|jpeg|webp|gif|mp4|mov|webm|m4v) : ;;
+    *) ext="bin" ;;
+  esac
+  out="${dest}.${ext}"
+  if with_retry 3 curl -fsSL "$url" -o "${out}.part"; then
+    mv -f "${out}.part" "$out"; printf '%s' "$out"; return 0
+  fi
+  rm -f "${out}.part" 2>/dev/null || true
+  return 1
+}
+
 # ---- Son kare çıkarma (last-frame chaining) --------------------------------
 # chain_lastframe <klip_url> <çıktı_jpg>  — klibi indirir, SON karesini görsele yazar.
 # ffmpeg + curl yoksa 1 döner (zincir kırılır, çağıran kendi still'ine düşer).

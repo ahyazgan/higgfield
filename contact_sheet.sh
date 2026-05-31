@@ -56,8 +56,16 @@ HTML
     [ -f "$rfile" ] && url="$(extract_url "$rfile" || true)"
     qc="$(qc_status "$base")"
 
+    # Arşivlenmiş yerel dosya varsa onu kullan (URL süreli olabilir); yoksa URL
+    local_img=""
+    for e in png jpg jpeg webp gif; do
+      if [ -f "$RUN_DIR/$base.$e" ]; then local_img="$base.$e"; break; fi
+    done
+
     printf '<div class="card">'
-    if [ -n "$url" ]; then
+    if [ -n "$local_img" ]; then
+      printf '<img src="%s" alt="%s" loading="lazy"><div class="tag">arşiv: %s</div>' "$(esc <<<"$local_img")" "$(esc <<<"$base")" "$(esc <<<"$local_img")"
+    elif [ -n "$url" ]; then
       printf '<img src="%s" alt="%s" loading="lazy">' "$(esc <<<"$url")" "$(esc <<<"$base")"
     else
       printf '<div class="missing">görsel yok / üretilmedi</div>'

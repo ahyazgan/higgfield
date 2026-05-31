@@ -28,6 +28,7 @@ OUT_ROOT="out"
 
 # ---- Argüman ayrıştırma ----------------------------------------------------
 DRY_RUN=0; CHECK=0; VARIANTS=1; BUDGET="${BUDGET:-}"
+ARCHIVE=1; if [ "${NO_ARCHIVE:-}" = 1 ]; then ARCHIVE=0; fi
 ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -35,6 +36,7 @@ while [ $# -gt 0 ]; do
     --check)   CHECK=1 ;;
     --variants) VARIANTS="${2:?--variants bir sayı ister}"; shift ;;
     --budget)  BUDGET="${2:?--budget bir sayı ister}"; shift ;;
+    --no-archive) ARCHIVE=0 ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     --*) die "Bilinmeyen seçenek: $1" ;;
     *) ARGS+=("$1") ;;
@@ -169,6 +171,14 @@ generate_one() {
     if with_retry "$MAX_RETRY" run_cli "$ref" "$rfile" "$(scene_seed "$mission" "$scene" "$v")"; then
       info "URL: $(extract_url "$rfile" || echo '?')"
       SPENT="$(fadd "$SPENT" "$UCOST")"
+      if [ "$ARCHIVE" = 1 ]; then
+        local u saved
+        u="$(extract_url "$rfile" || true)"
+        if [ -n "$u" ]; then
+          saved="$(archive_result "$u" "$outdir/$tag" || true)"
+          if [ -n "$saved" ]; then info "arşivlendi: $(basename "$saved")"; else warn "$tag: arşivlenemedi (curl yok / indirme hatası) — URL süreli olabilir"; fi
+        fi
+      fi
     else
       status="FAILED"; cost=0; warn "M$mission s$scene v$v üretilemedi."
     fi

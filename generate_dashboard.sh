@@ -22,6 +22,7 @@ jq empty "$ASSETS" 2>/dev/null || die "Geçersiz JSON: $ASSETS"
 MODEL="${MODEL:-$(jq -r '.defaults.model' "$ASSETS")}"
 MAX_RETRY="${MAX_RETRY:-3}"
 UCOST="$(model_cost "$MODEL")"
+ARCHIVE=1; if [ "${NO_ARCHIVE:-}" = 1 ]; then ARCHIVE=0; fi
 
 DRY_RUN=0; ONLY=""
 while [ $# -gt 0 ]; do
@@ -71,6 +72,13 @@ generate_asset() {
   local status="ok"
   if with_retry "$MAX_RETRY" run_cli "$prompt" "$aspect" "$rfile"; then
     info "URL: $(extract_url "$rfile" || echo '?')"
+    if [ "$ARCHIVE" = 1 ]; then
+      local u saved; u="$(extract_url "$rfile" || true)"
+      if [ -n "$u" ]; then
+        saved="$(archive_result "$u" "$RUN_DIR/$name" || true)"
+        if [ -n "$saved" ]; then info "arşivlendi: $(basename "$saved")"; else warn "$name: arşivlenemedi (curl yok / indirme hatası)"; fi
+      fi
+    fi
   else
     status="FAILED"; warn "[$id] $name üretilemedi."
   fi
