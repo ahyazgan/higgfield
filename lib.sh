@@ -50,8 +50,28 @@ new_run_dir() {
     dir="${root}/${stamp}-$$-${RANDOM}_${label}"
   fi
   mkdir -p "$dir"
-  ln -sfn "$(basename "$dir")" "${root}/latest"
+  update_latest "$root" "$dir"
   printf '%s\n' "$dir"
+}
+
+# 'latest' kısayolunu en güncel koşuya çevirir. Windows'ta msys `ln -s` sahte/bozuk
+# symlink üretir (içeriğe erişilemez) — bu yüzden Windows'ta PowerShell ile gerçek
+# dizin junction'ı (admin gerektirmez) kurulur. POSIX'te (Linux CI / macOS) normal
+# symlink. Her hâlükârda makine-okur 'latest.path' işaretçisi de yazılır.
+update_latest() {
+  local root=$1 dir=$2 link="${root}/latest" base
+  base="$(basename "$dir")"
+  rm -rf "$link" 2>/dev/null || true
+  if command -v powershell.exe >/dev/null 2>&1 && command -v cygpath >/dev/null 2>&1; then
+    local wlink wdir
+    wlink="$(cygpath -w "$link")"; wdir="$(cygpath -w "$dir")"
+    MSYS2_ARG_CONV_EXCL='*' powershell.exe -NoProfile -Command \
+      "if (Test-Path -LiteralPath '$wlink') { Remove-Item -LiteralPath '$wlink' -Recurse -Force }; New-Item -ItemType Junction -Path '$wlink' -Target '$wdir' | Out-Null" \
+      >/dev/null 2>&1 || true
+  else
+    ln -sfn "$base" "$link" 2>/dev/null || true
+  fi
+  printf '%s\n' "$base" > "${root}/latest.path" 2>/dev/null || true
 }
 
 # ---- Manifest --------------------------------------------------------------

@@ -70,6 +70,8 @@ NEGATIVE="$(jqm '.defaults.negative')"
 SEED_DEFAULT="$(jqm '.defaults.seed')"
 SEED="${SEED:-$SEED_DEFAULT}"        # "null" => seed kullanılmaz
 MAX_RETRY="${MAX_RETRY:-3}"
+# nano_banana_2 seed desteklemez; seed destekleyen bir modele geçersen 1 yap.
+MODEL_SUPPORTS_SEED="${MODEL_SUPPORTS_SEED:-0}"
 UCOST="$(model_cost "$MODEL")"       # birim üretim maliyeti
 CUR="$(currency)"
 SPENT=0; PROJECTED=0; STOP_BUDGET=0
@@ -195,18 +197,20 @@ scene_seed() {
 }
 
 # CLI çağrısı — sonucu atomik olarak rfile'a yazar.
+# Not: nano_banana_2 yalnızca prompt/input_images/aspect_ratio/resolution kabul eder.
+# negative-prompt ve seed bu modelde YOK (negatif yine de prompt.txt'ye kayıt için tutulur).
+# Modeli değiştirirsen `higgsfield model get <model>` ile geçerli paramları doğrula.
 run_cli() {
   local ref=$1 rfile=$2 seed=$3
-  local seed_args=()
-  if [ -n "$seed" ]; then seed_args=(--seed "$seed"); fi
+  local extra=()
+  if [ -n "$seed" ] && [ "$MODEL_SUPPORTS_SEED" = 1 ]; then extra+=(--seed "$seed"); fi
   higgsfield generate create "$MODEL" \
     --prompt "$PROMPT" \
-    --negative-prompt "$NEGATIVE" \
     --image "$ref" \
     --image "$FACE_REF" \
     --aspect_ratio "$ASPECT" \
     --resolution "$RESOLUTION" \
-    "${seed_args[@]}" \
+    "${extra[@]}" \
     --wait > "${rfile}.tmp" 2>&1 && mv -f "${rfile}.tmp" "$rfile"
 }
 
