@@ -27,7 +27,7 @@ MISSIONS="missions.json"
 OUT_ROOT="out"
 
 # ---- Argüman ayrıştırma ----------------------------------------------------
-DRY_RUN=0; CHECK=0; VARIANTS=1; BUDGET="${BUDGET:-}"; ALL=0
+DRY_RUN=0; CHECK=0; VARIANTS=1; BUDGET="${BUDGET:-}"; ALL=0; JOBS="${JOBS:-1}"
 ARCHIVE=1; if [ "${NO_ARCHIVE:-}" = 1 ]; then ARCHIVE=0; fi
 ARGS=()
 while [ $# -gt 0 ]; do
@@ -35,6 +35,7 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY_RUN=1 ;;
     --check)   CHECK=1 ;;
     --all)     ALL=1 ;;
+    --jobs)    JOBS="${2:?--jobs bir sayı ister}"; shift ;;
     --variants) VARIANTS="${2:?--variants bir sayı ister}"; shift ;;
     --budget)  BUDGET="${2:?--budget bir sayı ister}"; shift ;;
     --no-archive) ARCHIVE=0 ;;
@@ -76,6 +77,14 @@ MODEL_SUPPORTS_SEED="${MODEL_SUPPORTS_SEED:-0}"
 UCOST="$(model_cost "$MODEL")"       # birim üretim maliyeti
 CUR="$(currency)"
 SPENT=0; PROJECTED=0; STOP_BUDGET=0
+
+# --jobs güvenlik kapıları: dry-run paralel anlamsız (hızlı + projeksiyon parent-global);
+# bütçe kapısı sıralı muhasebe ister, paralelle birlikte güvenilir değil.
+[[ "$JOBS" =~ ^[0-9]+$ ]] || die "--jobs sayı olmalı: $JOBS"
+[ "$DRY_RUN" = 1 ] && JOBS=1
+if [ "$JOBS" -gt 1 ] && [ -n "$BUDGET" ]; then
+  die "--jobs ve --budget birlikte kullanılamaz (bütçe sıralı muhasebe gerektirir). Birini bırak."
+fi
 
 # Mission'a özgü karakter preset'ini global'lere yükler.
 # --all modunda her mission için ayrı çağrılır (mission'lar farklı karakter kullanabilir).
@@ -218,6 +227,32 @@ run_cli() {
     --wait > "${rfile}.tmp" 2>&1 && mv -f "${rfile}.tmp" "$rfile"
 }
 
+# ---- CLI sürüm + model parametre uyumu -------------------------------------
+# Üretimden önce modelin GERÇEK parametre listesini (higgsfield model get) okur ve
+# generate.sh'in göndereceği flag'lerle karşılaştırır — CLI sürümü değişip bir flag
+# kaybolduysa (örn. --negative-prompt) krediyi yakmadan ÖNCE uyarır.
+check_cli_params() {
+  command -v higgsfield >/dev/null 2>&1 || return 0
+  local ver; ver="$(higgsfield version 2>/dev/null | head -1 | tr -d '\r' || true)"
+  [ -n "$ver" ] && info "higgsfield: $ver"
+  local spec; spec="$(higgsfield model get "$MODEL" 2>/dev/null | tr -d '\r' || true)"
+  if [ -z "$spec" ]; then
+    warn "model parametreleri okunamadı ($MODEL) — flag uyumu doğrulanamadı"; return 0
+  fi
+  # Modelin kabul ettiği param adları: "PARAM" başlık satırından sonraki ilk sütun.
+  local params; params="$(awk 'f && $1 ~ /^[a-z_]+$/{print $1} /^PARAM/{f=1}' <<<"$spec")"
+  local need="prompt input_images aspect_ratio resolution"
+  [ "$MODEL_SUPPORTS_SEED" = 1 ] && need="$need seed"
+  local p miss=0
+  for p in $need; do
+    if ! grep -qx "$p" <<<"$params"; then
+      warn "model '$MODEL' '$p' parametresini listelemiyor ama generate.sh gönderiyor — CLI sürümü değişmiş olabilir. 'higgsfield model get $MODEL' ile run_cli flag'lerini doğrula."
+      miss=$((miss+1))
+    fi
+  done
+  if [ "$miss" -eq 0 ]; then info "CLI flag uyumu OK ($MODEL: $(tr '\n' ' ' <<<"$params"))"; fi
+}
+
 # ---- --check (preflight) ---------------------------------------------------
 # Tek mission'ın ref+mutex kontrolü; bulunan sorunları global CK_FAIL/CK_MISSING'e ekler.
 run_check_one() {
@@ -244,6 +279,7 @@ run_check() {
   CK_FAIL=0; CK_MISSING=0
   if command -v higgsfield >/dev/null 2>&1; then
     info "higgsfield: $(command -v higgsfield)"
+    check_cli_params
   else
     warn "higgsfield CLI kurulu değil — gerçek üretim yapılamaz, --dry-run çalışır (config kontrolü sürüyor)"
   fi
@@ -279,20 +315,35 @@ manifest_init "$MANIFEST"
 log "Koşu dizini: $RUN_DIR"
 
 # Bir mission'ı üretir (scene verilirse sadece onu). Tüm sahneler tek RUN_DIR/MANIFEST'e yazılır.
+# JOBS>1 ise sahneler izole subshell'lerde paralel üretilir (her biri kendi manifest
+# parçasına yazar; sonda sahne sırasıyla birleştirilir — satır karışması olmaz).
 gen_mission() {
-  local m=$1 only=${2:-}
+  local m=$1 only=${2:-} s scenes
   load_mission "$m"
-  if [ -n "$only" ]; then
-    generate_one "$m" "$only" "$RUN_DIR" "$MANIFEST"
-  else
-    local s
-    for s in $(jqm ".missions.\"$m\".scenes[].id"); do
+  if [ -n "$only" ]; then scenes="$only"; else scenes="$(jqm ".missions.\"$m\".scenes[].id")"; fi
+
+  if [ "$JOBS" -le 1 ]; then
+    for s in $scenes; do
       generate_one "$m" "$s" "$RUN_DIR" "$MANIFEST"
       if [ "$STOP_BUDGET" = 1 ]; then break; fi
     done
+    return 0
   fi
+
+  # Paralel: en çok JOBS eşzamanlı arka plan işi.
+  local running=0
+  for s in $scenes; do
+    ( generate_one "$m" "$s" "$RUN_DIR" "$RUN_DIR/.mf.${m}_${s}" ) &
+    running=$((running+1))
+    if [ "$running" -ge "$JOBS" ]; then wait -n 2>/dev/null || true; running=$((running-1)); fi
+  done
+  wait 2>/dev/null || true
+  # Parçaları sahne sırasıyla ana manifest'e ekle, sonra temizle.
+  cat "$RUN_DIR"/.mf.${m}_* 2>/dev/null | sort -t, -k3 -V >> "$MANIFEST" || true
+  rm -f "$RUN_DIR"/.mf.${m}_* 2>/dev/null || true
 }
 
+[ "$JOBS" -gt 1 ] && log "Paralel üretim: en çok $JOBS eşzamanlı iş"
 if [ "$ALL" = 1 ]; then
   log "Multi-mission akış: tüm mission'lar tek koşuda → $RUN_DIR"
   for m in $(jqm '.missions|keys[]'); do
@@ -301,6 +352,11 @@ if [ "$ALL" = 1 ]; then
   done
 else
   gen_mission "$MISSION" "$SCENE"
+fi
+
+# Paralel modda harcama parent'ta birikmez (subshell'ler) — manifest'ten topla.
+if [ "$DRY_RUN" != 1 ] && [ "$JOBS" -gt 1 ]; then
+  SPENT="$(awk -F, 'NR>1 && $9=="ok"{s+=$12} END{printf "%.4f", s+0}' "$MANIFEST" 2>/dev/null || echo 0)"
 fi
 
 # Maliyet özeti

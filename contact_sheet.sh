@@ -36,6 +36,7 @@ esc() { sed -e 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
   .qc.PASS{background:#173d1f;color:#7ee787;border:1px solid #2a6}
   .qc.FAIL{background:#3d1717;color:#ff7b72;border:1px solid #a33}
   .qc.SKIP{background:#222;color:#999;border:1px solid #444}
+  .qcnote{font-size:10px;color:#ff7b72;margin-top:4px}
   .review{font-size:11px;color:#bbb;margin-top:8px;border-top:1px solid #2a2a2a;padding-top:6px}
   .review label{display:block;cursor:pointer}
 </style></head><body>
@@ -43,9 +44,10 @@ HTML
   printf '<h1>Contact Sheet — %s</h1><div class="grid">\n' "$(basename "$RUN_DIR" | esc)"
 
   QCCSV="$RUN_DIR/qc.csv"
-  qc_status() {  # base -> PASS/FAIL/SKIP (qc.csv yoksa boş)
+  # qc.csv kolonları: base,status,format,width,height,aspect_ok,bytes,face_forward,location_score,note
+  qc_row() {  # base -> tüm qc satırı (yoksa boş)
     [ -f "$QCCSV" ] || return 0
-    awk -F, -v b="$1" 'NR>1 && $1==b{print $2; exit}' "$QCCSV"
+    awk -F, -v b="$1" 'NR>1 && $1==b{print; exit}' "$QCCSV"
   }
 
   shopt -s nullglob
@@ -54,7 +56,9 @@ HTML
     rfile="$RUN_DIR/$base.result.txt"
     url=""
     [ -f "$rfile" ] && url="$(extract_url "$rfile" || true)"
-    qc="$(qc_status "$base")"
+    qc=""; qfmt=""; qw=""; qh=""; qar=""; qnote=""
+    qcrow="$(qc_row "$base")"
+    [ -n "$qcrow" ] && IFS=, read -r _ qc qfmt qw qh qar _qby _qff _qls qnote <<<"$qcrow"
 
     # Arşivlenmiş yerel dosya varsa onu kullan (URL süreli olabilir); yoksa URL
     local_img=""
@@ -73,9 +77,17 @@ HTML
     printf '<div class="body"><h2>%s</h2><span class="tag">%s</span>' \
       "$(esc <<<"$base")" \
       "$( [ -n "$url" ] && echo "URL var" || echo "dry-run / sonuç yok" )"
-    if [ -n "$qc" ]; then printf '<span class="qc %s">QC: %s</span>' "$qc" "$qc"; fi
+    if [ -n "$qc" ]; then
+      printf '<span class="qc %s">QC: %s</span>' "$qc" "$qc"
+      detail=""
+      [ -n "$qfmt" ] && detail="$qfmt"
+      [ -n "$qw" ] && [ "$qw" != "0" ] && detail="$detail ${qw}x${qh}"
+      case "$qar" in true) detail="$detail · aspect ✓";; false) detail="$detail · aspect ✗";; esac
+      [ -n "$detail" ] && printf '<span class="tag">%s</span>' "$(esc <<<"$detail")"
+      if [ "$qc" = FAIL ] && [ -n "$qnote" ]; then printf '<div class="qcnote">⚠ %s</div>' "$(esc <<<"$qnote")"; fi
+    fi
     # Manuel inceleme: otomatik QC yakalayamadığı kuralları insanın onaylaması için
-    printf '<div class="review"><label><input type="checkbox"> Karakter ARKADAN (yüz kameraya dönük değil)</label><label><input type="checkbox"> Bina/iç mekan master ile aynı</label><label><input type="checkbox"> Kıyafet/kimlik tutarlı</label></div>'
+    printf '<div class="review"><label><input type="checkbox"> Yüz/kimlik referansla tutarlı</label><label><input type="checkbox"> Bina/iç mekan master ile aynı</label><label><input type="checkbox"> Kıyafet/kimlik tutarlı</label></div>'
     printf '<pre>%s</pre></div></div>\n' "$(esc < "$pfile")"
   done
 
