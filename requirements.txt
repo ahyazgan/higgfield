@@ -1,0 +1,11 @@
+# Opsiyonel derin-QC (qc_vision.py) Python bağımlılıkları.
+#   - opencv-python: frontal yüz tespiti (haar cascade) + görsel okuma/resize
+#   - numpy: aHash mekan-benzerlik hesabı
+#
+# Kurulum:  pip install -r requirements.txt
+# Sonra:    QC_VISION_CMD=./qc_vision.py ./qc.sh out/latest
+#
+# NOT: bunlar ZORUNLU DEĞİL. cv2 yoksa qc_vision.py null döner ve qc.sh
+# derin-QC'yi sessizce atlar; çekirdek QC (qc_core.py) saf-stdlib, deps istemez.
+opencv-python>=4.8
+numpy>=1.24

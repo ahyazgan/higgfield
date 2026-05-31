@@ -22,7 +22,15 @@ need_cmd jq
 RUN_DIR="$(resolve_run_dir "${1:?Kullanım: ./qc.sh <koşu_dizini>}")"
 [ -d "$RUN_DIR" ] || die "Dizin yok: $RUN_DIR"
 QC_LOC_MIN="${QC_LOC_MIN:-0.5}"
-MISSIONS="missions.json"; LOCS="presets/locations.json"
+MISSIONS="missions.json"; LOCS="presets/locations.json"; CAMS="presets/cameras.json"
+# Yüzü gösteren tanıtım modları — bu modlarda frontal yüz İHLAL değildir (beklenir).
+REVEAL_MODES=" $(jq -r '.reveal_modes[]?' "$CAMS" 2>/dev/null | tr '\n' ' ') "
+
+scene_camera() {  # base -> sahnenin kamera modu (bulunamazsa boş)
+  local base=$1
+  [[ "$base" =~ ^M([0-9]+)_s([0-9]+) ]] || return 0
+  jq -r ".missions.\"${BASH_REMATCH[1]}\".scenes[]|select(.id==${BASH_REMATCH[2]})|.camera" "$MISSIONS" 2>/dev/null
+}
 
 resolve_master() {  # base -> lokasyon master ref yolu (bulunamazsa boş)
   local base=$1
@@ -78,7 +86,14 @@ for rfile in $(ls "$RUN_DIR"/*.result.txt 2>/dev/null | sort -V); do
     if [ -n "$vj" ]; then
       ff="$(jq -r '.face_forward'    <<<"$vj" 2>/dev/null || echo "")"
       ls="$(jq -r '.location_score'  <<<"$vj" 2>/dev/null || echo "")"
-      if [ "$ff" = "true" ]; then ok=false; note="${note}; yüz karşıya dönük (GTA ihlali)"; fi
+      if [ "$ff" = "true" ]; then
+        cam="$(scene_camera "$base" || true)"
+        if [[ "$REVEAL_MODES" == *" $cam "* ]]; then
+          note="${note}; yüz görünür (reveal modu '$cam' — beklenen)"
+        else
+          ok=false; note="${note}; yüz karşıya dönük (arkadan-çekim modunda ihlal)"
+        fi
+      fi
       if [ -n "$ls" ] && [ "$ls" != "null" ] && fgt "$QC_LOC_MIN" "$ls"; then
         ok=false; note="${note}; mekan benzerliği düşük ($ls < $QC_LOC_MIN)"
       fi

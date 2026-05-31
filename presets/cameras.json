@@ -1,5 +1,7 @@
 {
   "_comment": "Each camera mode is a SELF-CONTAINED base block. A scene selects exactly ONE mode. Modes are mutually exclusive by design, so two contradictory camera instructions can never be layered into the same prompt. Per-scene distance/height/position goes in the scene's 'framing' field, which must not contradict the chosen mode.",
+  "_reveal_comment": "reveal_modes: karakterin yüzünü gösteren tanıtım modları. Derin-QC (qc_vision) bu modlarda frontal yüzü İHLAL saymaz (yüz beklenir).",
+  "reveal_modes": ["intro_hero", "intro_pushin", "orbit_reveal", "front_lead"],
   "modes": {
     "behind": "GTA V THIRD PERSON GAMEPLAY CAMERA, camera positioned directly behind the character, angled slightly downward following the character, character seen from BEHIND with back visible, wide angle lens showing the environment ahead, video game third person perspective like GTA V gameplay",
     "cutscene": "GTA V THIRD PERSON CUTSCENE CAMERA, camera behind the character slightly to the right, slowly drifting to a three-quarter back view, back of the head and slight side of the jaw visible, video game cutscene perspective like GTA V",

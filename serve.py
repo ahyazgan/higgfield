@@ -23,6 +23,7 @@ PORT = int(os.environ.get("PORT", "8000"))
 # başlatmada üretilir. Sayfaya server enjekte eder (tarayıcı otomatik gönderir);
 # özel başlık (X-Panel-Token) ayrıca CSRF'ye karşı preflight zorlar.
 TOKEN = os.environ.get("PANEL_TOKEN") or secrets.token_urlsafe(16)
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")  # terminal renk kodlarını temizlemek için
 
 MISSION_RE = re.compile(r"^0[0-9]$")
 SCENE_RE = re.compile(r"^[0-9]$")
@@ -47,16 +48,6 @@ def build_cmd(action, mission, scene, dry):
     if action == "costs":
         return ["./costs.sh"]
     return None
-
-
-def run(cmd):
-    try:
-        p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=600)
-        # ANSI renk kodlarını temizle
-        out = re.sub(r"\x1b\[[0-9;]*m", "", (p.stdout or "") + (p.stderr or ""))
-        return p.returncode, out
-    except Exception as e:
-        return 1, f"çalıştırma hatası: {e}"
 
 
 def scenes_data():
@@ -98,11 +89,20 @@ INDEX = """<!doctype html><html lang="tr"><head><meta charset="utf-8">
 const TOKEN=__TOKEN__;
 async function api(action, mission, scene){
   const dry = document.getElementById('dry').checked;
-  document.getElementById('out').textContent = '... çalışıyor: '+action+' '+(mission||'')+' '+(scene||'');
+  const out = document.getElementById('out');
+  out.textContent = '... başlıyor: '+action+' '+(mission||'')+' '+(scene||'')+'\\n';
   const r = await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json','X-Panel-Token':TOKEN},
     body:JSON.stringify({action,mission,scene,dry})});
-  const j = await r.json();
-  document.getElementById('out').textContent = '[rc='+j.rc+']\\n'+j.out;
+  if(!r.ok && !r.body){ out.textContent='[HTTP '+r.status+'] '+await r.text(); return; }
+  // Canlı akış: çıktı geldikçe ekle
+  const reader = r.body.getReader(); const dec = new TextDecoder();
+  out.textContent = '';
+  while(true){
+    const {done, value} = await reader.read();
+    if(done) break;
+    out.textContent += dec.decode(value, {stream:true});
+    out.scrollTop = out.scrollHeight;
+  }
 }
 async function load(){
   const d = await (await fetch('/api/scenes')).json();
@@ -164,9 +164,34 @@ class H(BaseHTTPRequestHandler):
                         str(data.get("scene", "") or ""), bool(data.get("dry", True)))
         if not cmd:
             return self._send(400, json.dumps({"rc": 1, "out": "bilinmeyen işlem"}), "application/json")
-        rc, out = run(cmd)
-        self._send(200, json.dumps({"rc": rc, "out": "$ " + " ".join(cmd) + "\n\n" + out},
-                                   ensure_ascii=False), "application/json")
+        # Canlı akış: çıktı üretildikçe satır satır gönder (uzun üretimde panel donmaz).
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+
+        def w(s):
+            try:
+                self.wfile.write(s.encode("utf-8"))
+                self.wfile.flush()
+            except Exception:
+                pass
+
+        w("$ " + " ".join(cmd) + "\n\n")
+        # Windows shebang'i tanımaz; .sh scriptlerini açıkça bash ile çalıştır
+        # (Linux/macOS'ta da güvenli — `bash script` her yerde çalışır).
+        exec_cmd = (["bash"] + cmd) if cmd and cmd[0].endswith(".sh") else cmd
+        try:
+            p = subprocess.Popen(exec_cmd, cwd=ROOT, stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT, text=True, bufsize=1,
+                                 encoding="utf-8", errors="replace")
+            for line in p.stdout:
+                w(ANSI_RE.sub("", line))
+            p.wait()
+            w(f"\n[rc={p.returncode}]\n")
+        except Exception as e:
+            w(f"\n[çalıştırma hatası: {e}]\n")
 
 
 def main():
