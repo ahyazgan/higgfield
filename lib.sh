@@ -13,6 +13,14 @@ die()  { printf '%sHATA:%s %s\n'  "$_c_red" "$_c_rst" "$*" >&2; exit 1; }
 # ---- Önkoşullar ------------------------------------------------------------
 need_cmd() { command -v "$1" >/dev/null 2>&1 || die "Gerekli komut bulunamadı: $1"; }
 
+# ---- jq sarmalayıcı (Windows CRLF düzeltmesi) ------------------------------
+# Windows jq derlemesi stdout'u METIN modunda yazıp her satıra \r ekler. Bu \r,
+# $(jq ...) ile yakalanan değerlere (sahne id, base, vb.) sızıp dosya adlarını
+# bozar (örn. "M01_s1\r.png" → curl onu "M01_s1_.png" yapar, mv eşleşmez).
+# Tüm jq çıktısından \r'yi tek noktada süpür. set -o pipefail açık olduğundan
+# jq'nun çıkış kodu korunur (tr daima 0 dönse de pipeline jq'nunkini yansıtır).
+jq() { command jq "$@" | tr -d '\r'; }
+
 # ---- Atomik yazma ----------------------------------------------------------
 # stdin'i hedef dosyaya atomik olarak yazar (yarım/bozuk dosya bırakmaz).
 atomic_write() {
