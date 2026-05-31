@@ -1,60 +1,75 @@
-# NORTH Mission 01 — Cursor + Claude Code + Higgsfield CLI Rehberi
+# NORTH — Higgsfield CLI Üretim Sistemi
 
-Bu klasörde 3 dosya var:
-- `SENARYO.md` — Okunaklı senaryo (kopyala-yapıştır için). Sabit bloklar + 6 sahne.
-- `scenes.json` — Programatik veri (script bunu okur, sen de düzenleyebilirsin).
-- `generate.sh` — Higgsfield CLI ile 6 sahneyi üreten script.
+GTA üçüncü-şahıs tarzında tutarlı bir görsel sekansı (NORTH restoran hikayesi)
+ve ayrı bir Soccer Manager dashboard asset seti üreten, **config-güdümlü** bir
+bash sistemi.
 
----
+## Tasarım ilkeleri
+- **Tek doğru kaynak (single source of truth):** karakter/lokasyon/kamera ve
+  sahneler veri dosyalarında yaşar; scriptler sadece okur ve birleştirir.
+  İkinci bir nüsha olmadığı için kayma (drift) olmaz.
+- **Çakışma yapısal olarak imkânsız:** her sahne **tek** bir kamera *modu*
+  seçer (modlar birbirini dışlar), negatifler pozitiften ayrıdır ve üretimden
+  önce bir **mutex kapısı** çelişkileri yakalar.
+- **Her koşu izole:** çıktı `out/<zaman>_<etiket>/` altına yazılır, atomik
+  kaydedilir, `manifest.csv`'ye loglanır — paralel koşular birbirini ezmez.
 
-## 1) Higgsfield CLI kurulumu
-```bash
-npm install -g @higgsfield/cli@latest
-# veya
-curl -fsSL https://raw.githubusercontent.com/higgsfield-ai/cli/main/install.sh | sh
-
-higgsfield auth login        # giriş yap
-higgsfield model list        # mevcut modelleri gör (Nano Banana, Soul, Kling, Veo...)
+## Dosya yapısı
+```
+missions.json            # M01+M02 tüm sahneler (TEK kaynak)
+presets/characters.json  # karakter (jay)
+presets/locations.json   # lokasyon (north_ext / north_int)
+presets/cameras.json     # kamera MODLARI (mutex)
+dashboard_assets.json    # Soccer Manager asset tanımları
+lib.sh                   # ortak: retry, atomik yazma, manifest, mutex, run-izolasyonu
+generate.sh              # NORTH sahne üreticisi
+generate_dashboard.sh    # dashboard asset üreticisi
+contact_sheet.sh         # koşu dizininden HTML galeri
+refs/                    # JAY_FACE.jpg + NORTH_MASTER.jpg + INTERIOR_MASTER.jpg
 ```
 
-## 2) Cursor + Claude Code ile çalışma
-1. Bu klasörü Cursor'da aç.
-2. Claude Code'a şu işleri yaptırabilirsin:
-   - "scenes.json'daki Sahne 2'nin mekan açıklamasını şöyle değiştir..."
-   - "generate.sh'a Soul ID flag'ini ekle"
-   - "her sahne için ayrı .txt prompt dosyası üret"
-3. CLI'ı Claude Code terminalinden çalıştır.
-
-## 3) Referans görseller (kritik — bina tutarlılığı)
-`refs/` klasörü oluştur ve iki master görseli koy:
-- `refs/NORTH_MASTER.png` — seçtiğin TEK dış cephe binası
-- `refs/INTERIOR_MASTER.png` — seçtiğin TEK iç mekan
-
-> Önceki sorunun (her sahnede bina farklı) tek çözümü buydu: binayı kelimeyle
-> değil, **referans görselle** sabitlemek. Script bunu `--start-image` ile yapıyor.
-
-## 4) Çalıştırma
+## Kurulum
 ```bash
-chmod +x generate.sh
-./generate.sh        # 6 sahnenin hepsi
-./generate.sh 2      # sadece Sahne 2
+npm install -g @higgsfield/cli@latest      # veya resmi install scripti
+higgsfield auth login
+# Bu sistem ayrıca `jq` gerektirir (config okuma).
 ```
 
-## 5) generate.sh içinde doldurman gerekenler
-- `MODEL` — `higgsfield model list` çıktısından seç.
-- `SOUL_ID` — Jay karakterinin Soul id'si (`higgsfield soul list` benzeri bir komutla).
-- `MASTER_EXT` / `MASTER_INT` — referans görsel yolları.
-- Flag adları sürüme göre değişebilir — `higgsfield generate create <model> --help`
-  ile doğrula (özellikle start-image, soul, aspect ratio).
+## Kullanım
+```bash
+./generate.sh --check                 # ÜRETMEDEN doğrula: config + ref + çelişki kapısı
+./generate.sh --dry-run 01 1          # prompt'u kur ve göster, kredi harcama
+./generate.sh 01                      # Mission 01, tüm sahneler
+./generate.sh 02 3                    # Mission 02, sahne 3
+./generate.sh --variants 4 01 2       # sahne 2 için 4 varyant (seed kayar)
+./contact_sheet.sh out/latest         # son koşunun HTML galerisi
 
----
+./generate_dashboard.sh --list        # dashboard asset listesi
+./generate_dashboard.sh --dry-run     # tüm dashboard prompt'ları (üretmeden)
+./generate_dashboard.sh 5             # sadece asset 5
+```
 
-## ⚠️ Dürüst notlar
-- **CLI flag'leri:** Yukarıdaki flag adları (`--start-image`, `--aspect_ratio`, `--wait`)
-  CLI dokümanındaki örneklerden alındı ama sürümle değişebilir. İlk çalıştırmadan önce
-  `--help` ile mutlaka kontrol et.
-- **Soul karakter bağlama:** CLI'da Soul karakterini prompt'a bağlama yöntemi (ayrı flag
-  mı, prompt içi mi) sürüme bağlı; `model list` ve `--help` sana net söyler.
-- **MCP alternatifi:** Resmî MCP yok ama topluluk yapımı `geopopos/higgsfield_ai_mcp`
-  var. Claude Desktop/Code'a MCP olarak bağlamak istersen onu kurabilirsin; mantık aynı
-  (prompt + referans görsel). CLI çoğu iş için daha basit.
+Ortam değişkeniyle override: `MODEL`, `ASPECT`, `RESOLUTION`, `SEED`, `MAX_RETRY`.
+Örn. ucuz taslak: `RESOLUTION=1k ./generate.sh 01`.
+
+## Yeni içerik eklemek (kod yazmadan)
+- **Yeni sahne / Mission:** `missions.json`'a ekle. `camera` alanı
+  `presets/cameras.json`'daki modlardan biri olmalı (yoksa `--check` reddeder).
+- **Yeni karakter / lokasyon:** ilgili preset dosyasına bir kayıt ekle, sahnede
+  `character` / `location` ile referansla.
+
+## Tutarlılık yöntemi
+İki referans görsel her sahnede sabit kalır:
+1. **Lokasyon master** (`NORTH_MASTER.jpg` / `INTERIOR_MASTER.jpg`) → mekan/bina.
+2. **Yüz referansı** (`JAY_FACE.jpg`) → karakter kimliği + saç deseni (arkadan bile).
+
+Bina/iç mekanı kelimeyle değil **referans görselle** sabitlemek tutarlılığın
+anahtarıdır; prompt yalnızca "match the reference exactly" der.
+
+## Dürüst notlar
+- **CLI flag'leri** sürümle değişebilir (`--negative-prompt`, `--resolution`,
+  `--seed`, `--aspect_ratio`). İlk gerçek üretimden önce
+  `higgsfield generate create <model> --help` ile doğrula; `generate.sh`'ın
+  `run_cli` fonksiyonundaki flag adlarını gerekirse güncelle.
+- `--check` ve `--dry-run` higgsfield kurulu olmadan da çalışır (config + prompt
+  testi için).

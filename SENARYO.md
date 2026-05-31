@@ -1,3 +1,8 @@
+> ℹ️ **Bu dosya insan-okunur senaryodur (anlatı).** Teknik **tek doğru kaynak**
+> `missions.json` + `presets/`'tir; scriptler yalnızca onları okur. Üretimi
+> etkileyen bir değişiklik yapacaksan bu dosyayı değil, JSON'ları düzenle —
+> böylece iki nüsha birbirinden kaymaz.
+
 # NORTH — Mission 01: Senaryo (GTA Third-Person Kamera)
 
 > 6 sahnelik bir sekans. Karakter (Jay) hep **arkadan**, hep takip ediliyor.

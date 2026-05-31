@@ -1,0 +1,16 @@
+{
+  "north_ext": {
+    "id": "north_ext",
+    "name": "NORTH exterior",
+    "lock": "NORTH restaurant: weathered red brick facade, black wooden 6-panel door with brass handle, white serif NORTH sign mounted above the door, large glass window with warm interior light, two terracotta plant pots flanking the entrance, cobblestone sidewalk in front — same building appearance across every scene",
+    "ref": "refs/NORTH_MASTER.jpg",
+    "anchor": "The reference location image is the EXACT location for this scene — match the building, walls, door, signage, brickwork, windows, lighting and every visible detail to that image. Do not invent or alter the location."
+  },
+  "north_int": {
+    "id": "north_int",
+    "name": "NORTH interior",
+    "lock": "NORTH restaurant interior: weathered red brick walls, high ceiling with exposed dark wooden beams, original hardwood floor, large window on one side with golden light, vintage industrial pendant lights, sense of restored heritage space — same interior appearance across every scene",
+    "ref": "refs/INTERIOR_MASTER.jpg",
+    "anchor": "The reference location image is the EXACT location for this scene — match the interior walls, beams, floor, windows, lighting and every visible detail to that image. Do not invent or alter the location."
+  }
+}

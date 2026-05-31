@@ -1,0 +1,9 @@
+{
+  "jay": {
+    "id": "jay",
+    "name": "Jay",
+    "description": "Mediterranean Turkish man, mid-twenties around 26 years old, dark brown almost black hair short faded on sides with textured volume on top slightly messy, thick dark eyebrows, full thick dark mustache (chevron style covering upper lip) with connected short chin beard goatee, clean cheeks no sideburn beard, light olive skin, medium solid build with broad shoulders not lean not heavy, oval face with strong jawline, dark brown eyes, wearing fitted white cotton crew-neck t-shirt, black canvas chef apron tied at waist (straps crossing on back), dark navy slim-fit jeans, black low-top sneakers, silver watch on left wrist",
+    "identity_anchor": "The reference face image is the character's face and hair — preserve identity exactly. CRITICAL HAIR DETAIL even when seen from behind: dark brown almost black hair, short tight skin fade on the sides and back of the head with a sharp clean fade line above the ears, textured volume only on top with slight messy styling, no long hair, no buzz cut on top, no curls — the back of the head must clearly show the fade pattern. Body build: medium solid frame with broad shoulders, NOT skinny, NOT lean.",
+    "face_ref": "refs/JAY_FACE.jpg"
+  }
+}

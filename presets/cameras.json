@@ -1,0 +1,13 @@
+{
+  "_comment": "Each camera mode is a SELF-CONTAINED base block. A scene selects exactly ONE mode. Modes are mutually exclusive by design, so two contradictory camera instructions can never be layered into the same prompt. Per-scene distance/height/position goes in the scene's 'framing' field, which must not contradict the chosen mode.",
+  "modes": {
+    "behind": "GTA V THIRD PERSON GAMEPLAY CAMERA, camera positioned directly behind the character, angled slightly downward following the character, character seen from BEHIND with back visible, wide angle lens showing the environment ahead, video game third person perspective like GTA V gameplay",
+    "cutscene": "GTA V THIRD PERSON CUTSCENE CAMERA, camera behind the character slightly to the right, slowly drifting to a three-quarter back view, back of the head and slight side of the jaw visible, video game cutscene perspective like GTA V",
+    "high_establishing": "GTA V third person HIGH ESTABLISHING CAMERA, camera elevated looking down at a shallow angle, deep perspective revealing the whole space ahead, character framed in the lower portion of a wide frame",
+    "low_intimate": "GTA V third person LOW INTIMATE CAMERA, camera very close behind the character at low height, tight cropped frame, slight dutch tilt, narrow depth of field, almost handheld feel",
+    "low_side_action": "GTA V third person LOW SIDE ACTION CAMERA, camera near ground level to the side of the character, three-quarter back side-profile angle, slight dutch tilt, cinematic action-cam framing",
+    "over_shoulder_topdown": "GTA V third person TIGHT OVER-SHOULDER TOP-DOWN CAMERA, camera just above and behind one shoulder angled steeply downward toward the task, hands and foreground filling the lower frame, back of the head visible at the top",
+    "side_track": "GTA V third person SIDE TRACKING DOLLY CAMERA, camera to the side moving parallel to the character, character in profile mid-frame, lateral tracking motion feel",
+    "pullback": "GTA V third person ULTRA-WIDE CUTSCENE PULL-BACK CAMERA, camera far back and high slowly drifting backward and upward, character small in the lower third of the frame, cinematic mission-start framing"
+  }
+}

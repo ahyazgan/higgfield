@@ -1,5 +1,6 @@
 # Generated outputs (regeneratable, large)
 out/
+out_dashboard/
 
 # Original full-size master PNGs (backed up locally, too large for git)
 refs/_originals/
