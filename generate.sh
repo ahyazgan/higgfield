@@ -5,11 +5,13 @@
 #   ./generate.sh                      M01, tüm sahneler
 #   ./generate.sh 01 3                 M01, sahne 3
 #   ./generate.sh 02                   M02, tüm sahneler
-#   ./generate.sh --check              Üretmeden doğrula (preflight): config + ref + mutex
+#   ./generate.sh --all                TÜM mission'lar tek koşuda + birleşik manifest
+#   ./generate.sh --jobs 6 01          Sahneleri PARALEL üret (en çok 6 eşzamanlı)
+#   ./generate.sh --check [--all]      Üretmeden doğrula: config + ref + mutex + CLI flag uyumu
 #   ./generate.sh --dry-run 01 2       Prompt'u kur ve göster, CLI çağırma, kredi harcama
 #   ./generate.sh --variants 4 01 1    Sahne için 4 varyant üret (seed kayar)
 #
-# Ortam değişkeni ile override: MODEL, ASPECT, RESOLUTION, SEED, MAX_RETRY
+# Ortam değişkeni ile override: MODEL, ASPECT, RESOLUTION, SEED, MAX_RETRY, JOBS
 #
 # Önkoşul: refs/JAY_FACE.jpg + ilgili lokasyon master görseli (refs/*.jpg)
 
