@@ -48,6 +48,7 @@ ASPECT="${ASPECT:-$(jqm '.defaults.aspect_ratio')}"
 COMMON_MOTION="$(jqm '.defaults.video.common_motion')"
 VNEG="$(jqm '.defaults.video.negative')"
 MAX_RETRY="${MAX_RETRY:-3}"
+UCOST="$(model_cost "$VMODEL")"; CUR="$(currency)"
 
 RUN_DIR="$(new_run_dir "$OUT_ROOT" "clips")"
 MANIFEST="$RUN_DIR/manifest.csv"
@@ -114,13 +115,13 @@ clip_one() {
   if [ "$DRY_RUN" = 1 ]; then
     log "[dry-run] $base → klip motion: $mfile  [başlangıç: $start_label]"
     info "$MOTION_PROMPT"
-    manifest_append "$MANIFEST" "video" "$base" "1" "$VMODEL" "$ASPECT" "${DURATION}s" "" "dry-run" "-" "$(basename "$mfile")"
+    manifest_append "$MANIFEST" "video" "$base" "1" "$VMODEL" "$ASPECT" "${DURATION}s" "" "dry-run" "-" "$(basename "$mfile")" "$UCOST"
     return 0
   fi
 
   if [ -z "$start" ]; then
     warn "$base: başlangıç görseli (still URL) yok — önce ./generate.sh ile üret. Atlanıyor."
-    manifest_append "$MANIFEST" "video" "$base" "1" "$VMODEL" "$ASPECT" "${DURATION}s" "" "SKIP_no_start" "-" "$(basename "$mfile")"
+    manifest_append "$MANIFEST" "video" "$base" "1" "$VMODEL" "$ASPECT" "${DURATION}s" "" "SKIP_no_start" "-" "$(basename "$mfile")" "0"
     return 0
   fi
 
@@ -140,7 +141,8 @@ clip_one() {
   else
     status="FAILED"; warn "$base klip üretilemedi."
   fi
-  manifest_append "$MANIFEST" "video" "$base" "1" "$VMODEL" "$ASPECT" "${DURATION}s" "" "$status" "$(basename "$rfile")" "$(basename "$mfile")"
+  local cost="$UCOST"; [ "$status" = "ok" ] || cost=0
+  manifest_append "$MANIFEST" "video" "$base" "1" "$VMODEL" "$ASPECT" "${DURATION}s" "" "$status" "$(basename "$rfile")" "$(basename "$mfile")" "$cost"
 }
 
 if [ "$CHAIN" = 1 ]; then log "Zincir modu (last-frame chaining) açık — sahneler sırayla, her klibin son karesi sonrakine başlangıç."; fi

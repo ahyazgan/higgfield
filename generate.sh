@@ -27,14 +27,15 @@ MISSIONS="missions.json"
 OUT_ROOT="out"
 
 # ---- Argüman ayrıştırma ----------------------------------------------------
-DRY_RUN=0; CHECK=0; VARIANTS=1
+DRY_RUN=0; CHECK=0; VARIANTS=1; BUDGET="${BUDGET:-}"
 ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
     --check)   CHECK=1 ;;
     --variants) VARIANTS="${2:?--variants bir sayı ister}"; shift ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    --budget)  BUDGET="${2:?--budget bir sayı ister}"; shift ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     --*) die "Bilinmeyen seçenek: $1" ;;
     *) ARGS+=("$1") ;;
   esac
@@ -67,6 +68,9 @@ NEGATIVE="$(jqm '.defaults.negative')"
 SEED_DEFAULT="$(jqm '.defaults.seed')"
 SEED="${SEED:-$SEED_DEFAULT}"        # "null" => seed kullanılmaz
 MAX_RETRY="${MAX_RETRY:-3}"
+UCOST="$(model_cost "$MODEL")"       # birim üretim maliyeti
+CUR="$(currency)"
+SPENT=0; PROJECTED=0; STOP_BUDGET=0
 
 [ "$(jqm ".missions.\"$MISSION\" // empty")" != "" ] || die "Mission bulunamadı: $MISSION"
 CHAR_ID="$(jqm ".missions.\"$MISSION\".character")"
@@ -139,22 +143,30 @@ generate_one() {
     } | atomic_write "$pfile"
 
     if [ "$DRY_RUN" = 1 ]; then
+      PROJECTED="$(fadd "$PROJECTED" "$UCOST")"
       log "[dry-run] M$mission $S_TITLE (s$scene v$v) — prompt: $pfile"
       info "$PROMPT"
       manifest_append "$manifest" "M$mission" "s$scene" "$v" "$MODEL" "$ASPECT" "$RESOLUTION" \
-        "$(scene_seed "$mission" "$scene" "$v")" "dry-run" "-" "$(basename "$pfile")"
+        "$(scene_seed "$mission" "$scene" "$v")" "dry-run" "-" "$(basename "$pfile")" "$UCOST"
       continue
     fi
 
+    # Bütçe kapısı: bu üretim limiti aşacaksa dur
+    if [ -n "$BUDGET" ] && fgt "$(fadd "$SPENT" "$UCOST")" "$BUDGET"; then
+      warn "Bütçe limitine ulaşıldı ($CUR $BUDGET). Harcanan: $CUR $SPENT. Kalan sahneler atlanıyor."
+      STOP_BUDGET=1; return 0
+    fi
+
     log "M$mission $S_TITLE (s$scene v$v) üretiliyor → $(basename "$rfile")"
-    local status="ok"
+    local status="ok" cost="$UCOST"
     if with_retry "$MAX_RETRY" run_cli "$ref" "$rfile" "$(scene_seed "$mission" "$scene" "$v")"; then
       info "URL: $(extract_url "$rfile" || echo '?')"
+      SPENT="$(fadd "$SPENT" "$UCOST")"
     else
-      status="FAILED"; warn "M$mission s$scene v$v üretilemedi."
+      status="FAILED"; cost=0; warn "M$mission s$scene v$v üretilemedi."
     fi
     manifest_append "$manifest" "M$mission" "s$scene" "$v" "$MODEL" "$ASPECT" "$RESOLUTION" \
-      "$(scene_seed "$mission" "$scene" "$v")" "$status" "$(basename "$rfile")" "$(basename "$pfile")"
+      "$(scene_seed "$mission" "$scene" "$v")" "$status" "$(basename "$rfile")" "$(basename "$pfile")" "$cost"
   done
 }
 
@@ -232,7 +244,18 @@ if [ -n "$SCENE" ]; then
 else
   for s in $(jqm ".missions.\"$MISSION\".scenes[].id"); do
     generate_one "$MISSION" "$s" "$RUN_DIR" "$MANIFEST"
+    if [ "$STOP_BUDGET" = 1 ]; then break; fi
   done
+fi
+
+# Maliyet özeti
+if [ "$DRY_RUN" = 1 ]; then
+  log "Tahmini maliyet (dry-run projeksiyonu): $CUR $PROJECTED"
+else
+  log "Harcanan (tahmini): $CUR $SPENT"
+fi
+if fgt "0.0001" "$UCOST"; then
+  warn "pricing.json'da '$MODEL' için maliyet 0 — gerçek rakamı girersen bütçe/özet anlamlı olur."
 fi
 
 log "Bitti. Manifest: $MANIFEST"

@@ -54,14 +54,28 @@ new_run_dir() {
 manifest_init() {
   local f=$1
   [ -f "$f" ] && return 0
-  printf 'timestamp,project,unit,variant,model,aspect,resolution,seed,status,result_file,prompt_file\n' > "$f"
+  printf 'timestamp,project,unit,variant,model,aspect,resolution,seed,status,result_file,prompt_file,est_cost\n' > "$f"
 }
 manifest_append() {
-  # manifest_append <dosya> <project> <unit> <variant> <model> <aspect> <res> <seed> <status> <result_file> <prompt_file>
+  # manifest_append <dosya> <project> <unit> <variant> <model> <aspect> <res> <seed> <status> <result_file> <prompt_file> <est_cost>
   local f=$1; shift
-  printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+  printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$@" >> "$f"
 }
+
+# ---- Maliyet / bütçe (pricing.json) ----------------------------------------
+PRICING_FILE="${PRICING_FILE:-pricing.json}"
+model_cost() {  # model_cost <model> -> birim maliyet (yoksa 0)
+  local m=$1
+  [ -f "$PRICING_FILE" ] || { printf '0'; return; }
+  jq -r --arg m "$m" '.models[$m] // 0' "$PRICING_FILE"
+}
+currency() {
+  [ -f "$PRICING_FILE" ] && jq -r '.currency // "USD"' "$PRICING_FILE" || printf 'USD'
+}
+# Kayan nokta toplama/karşılaştırma (bc olmadan, awk ile)
+fadd() { awk -v a="$1" -v b="$2" 'BEGIN{printf "%.4f", a+b}'; }
+fgt()  { awk -v a="$1" -v b="$2" 'BEGIN{exit !(a>b)}'; }    # a>b ise 0 (true)
 
 # ---- Mutex / çelişki doğrulama ---------------------------------------------
 # Üretilmiş POZITIF prompt'ta çelişen talimat var mı denetler.

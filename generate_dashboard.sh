@@ -21,6 +21,7 @@ jq empty "$ASSETS" 2>/dev/null || die "Geçersiz JSON: $ASSETS"
 
 MODEL="${MODEL:-$(jq -r '.defaults.model' "$ASSETS")}"
 MAX_RETRY="${MAX_RETRY:-3}"
+UCOST="$(model_cost "$MODEL")"
 
 DRY_RUN=0; ONLY=""
 while [ $# -gt 0 ]; do
@@ -62,7 +63,7 @@ generate_asset() {
 
   if [ "$DRY_RUN" = 1 ]; then
     log "[dry-run] [$id] $name ($aspect) — $pfile"
-    manifest_append "$MANIFEST" "dashboard" "$name" "1" "$MODEL" "$aspect" "-" "" "dry-run" "-" "$(basename "$pfile")"
+    manifest_append "$MANIFEST" "dashboard" "$name" "1" "$MODEL" "$aspect" "-" "" "dry-run" "-" "$(basename "$pfile")" "$UCOST"
     return 0
   fi
 
@@ -73,7 +74,8 @@ generate_asset() {
   else
     status="FAILED"; warn "[$id] $name üretilemedi."
   fi
-  manifest_append "$MANIFEST" "dashboard" "$name" "1" "$MODEL" "$aspect" "-" "" "$status" "$(basename "$rfile")" "$(basename "$pfile")"
+  local cost="$UCOST"; [ "$status" = "ok" ] || cost=0
+  manifest_append "$MANIFEST" "dashboard" "$name" "1" "$MODEL" "$aspect" "-" "" "$status" "$(basename "$rfile")" "$(basename "$pfile")" "$cost"
 }
 
 if [ -n "$ONLY" ]; then
