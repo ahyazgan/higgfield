@@ -19,14 +19,22 @@ bash sistemi.
 missions.json            # M01+M02 tüm sahneler (TEK kaynak)
 presets/characters.json  # karakter (jay)
 presets/locations.json   # lokasyon (north_ext / north_int)
-presets/cameras.json     # kamera MODLARI (mutex)
+presets/cameras.json     # kamera MODLARI (mutex) + i2v motion haritası
+pricing.json             # model başına maliyet (bütçe/rapor için)
 dashboard_assets.json    # Soccer Manager asset tanımları
-lib.sh                   # ortak: retry, atomik yazma, manifest, mutex, run-izolasyonu
-generate.sh              # NORTH sahne üreticisi (still kareler)
-to_video.sh              # image-to-video: kareleri kliplere çevirir
+lib.sh                   # ortak: retry, atomik yazma, manifest, mutex, maliyet, run-izolasyonu
+generate.sh              # NORTH sahne üreticisi (still kareler) — --check/--dry-run/--variants/--budget
+to_video.sh              # image-to-video: kareleri kliplere çevirir (--chain)
 assemble.sh              # klipleri tek mp4'e birleştirir (ffmpeg)
+pick.sh                  # varyant seçimi (selection.json)
+qc.sh + qc_core.py       # görsel kalite kapısı (geçerlilik/aspect) + opsiyonel
+qc_vision.py             #   derin-QC (cv2: yüz-yönü + mekan benzerliği)
+costs.sh                 # koşulardan tahmini maliyet raporu
+contact_sheet.sh         # koşu dizininden HTML galeri (QC rozeti + manuel inceleme)
+serve.py                 # yerel web paneli (bağımlılıksız, http://127.0.0.1:8000)
 generate_dashboard.sh    # dashboard asset üreticisi
-contact_sheet.sh         # koşu dizininden HTML galeri
+.claude/hooks/           # web SessionStart hook (jq + config doğrulama)
+.github/workflows/       # CI: JSON/syntax/mutex/dry-run doğrulama
 refs/                    # JAY_FACE.jpg + NORTH_MASTER.jpg + INTERIOR_MASTER.jpg
 ```
 
@@ -73,6 +81,24 @@ higgsfield auth login
 ./generate_dashboard.sh --dry-run     # tüm dashboard prompt'ları (üretmeden)
 ./generate_dashboard.sh 5             # sadece asset 5
 ```
+
+### Kalite, seçim, maliyet, panel
+```bash
+./generate.sh --variants 4 01 2       # sahne 2 için 4 aday
+./pick.sh out/latest 2 3              # sahne 2 -> varyant 3 seç (to_video sadece onu işler)
+./pick.sh out/latest --show          # seçimleri göster
+
+./qc.sh out/latest                   # görsel kalite kapısı (geçerlilik + aspect)
+QC_VISION_CMD=./qc_vision.py ./qc.sh out/latest   # + derin-QC (cv2 gerekir)
+
+./generate.sh --budget 5 01          # 5 birim maliyeti aşmadan dur
+./costs.sh                           # tüm koşuların tahmini maliyeti
+
+python3 serve.py                     # yerel web paneli -> http://127.0.0.1:8000
+```
+
+> Maliyet/bütçe için önce `pricing.json`'a gerçek model fiyatlarını gir
+> (varsayılan 0 — rapor sıfır çıkar).
 
 Ortam değişkeniyle override: `MODEL`, `ASPECT`, `RESOLUTION`, `SEED`, `MAX_RETRY`,
 `VIDEO_MODEL` (varsayılan `seedance` — `missions.json .defaults.video`).
