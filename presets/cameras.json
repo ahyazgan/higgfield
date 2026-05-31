@@ -8,7 +8,11 @@
     "low_side_action": "GTA V third person LOW SIDE ACTION CAMERA, camera near ground level to the side of the character, three-quarter back side-profile angle, slight dutch tilt, cinematic action-cam framing",
     "over_shoulder_topdown": "GTA V third person TIGHT OVER-SHOULDER TOP-DOWN CAMERA, camera just above and behind one shoulder angled steeply downward toward the task, hands and foreground filling the lower frame, back of the head visible at the top",
     "side_track": "GTA V third person SIDE TRACKING DOLLY CAMERA, camera to the side moving parallel to the character, character in profile mid-frame, lateral tracking motion feel",
-    "pullback": "GTA V third person ULTRA-WIDE CUTSCENE PULL-BACK CAMERA, camera far back and high slowly drifting backward and upward, character small in the lower third of the frame, cinematic mission-start framing"
+    "pullback": "GTA V third person ULTRA-WIDE CUTSCENE PULL-BACK CAMERA, camera far back and high slowly drifting backward and upward, character small in the lower third of the frame, cinematic mission-start framing",
+    "intro_hero": "GTA V THIRD PERSON CUTSCENE HERO CAMERA, camera low and in front of the character angled upward, three-quarter front view with the face clearly visible, character gazing off into the distance past the lens, dramatic low-angle character-introduction framing like a GTA V mission-intro cutscene",
+    "intro_pushin": "GTA V THIRD PERSON CUTSCENE PUSH-IN CAMERA, slow cinematic dolly push-in to a three-quarter front medium close-up, the character's face clearly lit and visible, eyeline directed off to the side past the lens, shallow depth of field, GTA V character-reveal cutscene",
+    "orbit_reveal": "GTA V THIRD PERSON CUTSCENE ORBIT CAMERA, camera arcing from behind the character around to a three-quarter front angle, revealing the face as it settles ahead of him, cinematic orbital character reveal like a GTA V cutscene",
+    "front_lead": "GTA V THIRD PERSON CUTSCENE LEAD TRACKING CAMERA, camera positioned ahead of the character and moving backward as he walks toward it, full front view with the face visible, steady leading dolly like a GTA V cutscene"
   },
   "_motion_comment": "image-to-video kullanımında her moda karşılık gelen kamera HAREKETİ. to_video.sh bunu sahne aksiyonuyla birleştirir. Sahnede 'motion' alanı varsa o önceliklidir.",
   "motion": {
@@ -19,6 +23,10 @@
     "low_side_action": "slow side push-in as the flames flare up, embers and light flicker, subtle heat shimmer",
     "over_shoulder_topdown": "locked top-down framing, only the hands and knife move in the task, slight food motion",
     "side_track": "lateral tracking dolly moving parallel with the walking character, smooth steady glide",
-    "pullback": "slow continuous pull-back and upward crane, the room opens up around the small figure"
+    "pullback": "slow continuous pull-back and upward crane, the room opens up around the small figure",
+    "intro_hero": "very slow low-angle push-in, the character holds a confident still pose, subtle breathing, light flares gently across the frame",
+    "intro_pushin": "slow steady dolly push-in toward the face, shallow focus holds on the eyes, minimal head movement",
+    "orbit_reveal": "smooth orbital arc sweeping from behind around to the front, gradual face reveal, steady cinematic glide",
+    "front_lead": "camera leads the walking character moving backward at matching pace, the face stays framed, smooth steady tracking"
   }
 }

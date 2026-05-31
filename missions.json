@@ -33,10 +33,10 @@
           "id": 2,
           "title": "NORTH'a Yaklaşıyor",
           "location": "north_ext",
-          "camera": "behind",
-          "framing": "camera floating 3 meters behind at 1.7m height, character in lower-left third of frame",
-          "action": "character walking toward the NORTH restaurant entrance, approaching the building",
-          "environment": "NORTH restaurant red brick facade directly ahead, black wooden 6-panel door, NORTH sign above the door in white serif letters, large glass window with warm light inside, two terracotta plant pots flanking the door, cobblestone sidewalk, golden afternoon light"
+          "camera": "front_lead",
+          "framing": "camera 3 meters ahead of the character at chest height 1.4m, dollying backward as he walks toward it, character centered and facing forward, face clearly lit and visible",
+          "action": "character walking toward the NORTH entrance, approaching with a calm confident stride, eyes on the doorway just past the camera",
+          "environment": "the narrow Miami Little Havana street stretching out behind the character, old red brick and pastel buildings on both sides, vintage 1960s American cars parked along the curb, palm trees and overhead cables, warm amber glow from the NORTH doorway washing over his face from the camera side, golden late afternoon backlight rimming his shoulders"
         },
         {
           "id": 3,
@@ -69,10 +69,10 @@
           "id": 6,
           "title": "Duruyor, Karar",
           "location": "north_int",
-          "camera": "cutscene",
-          "framing": "camera 2 meters behind at 1.6m height, drifting to a three-quarter back view, character in center-left of frame",
-          "action": "character standing still in the center of the empty space, looking ahead at the room before him, slight head movement taking it in, contemplative still posture",
-          "environment": "abandoned restaurant interior ahead and around, red brick walls, wooden beams, golden light beams through the window, dust in the air, empty space full of potential"
+          "camera": "intro_hero",
+          "framing": "camera low at 0.8m height about 2 meters in front of the character angled upward, three-quarter front hero framing, the face lit by the window light, character filling the central frame",
+          "action": "character standing still in the center of the empty space, gazing off toward the window light, slight lift of the chin, contemplative confident posture taking it all in",
+          "environment": "abandoned restaurant interior framing him from the front, weathered red brick walls and exposed wooden beams behind him, dramatic golden light beams from the side window raking across his face, dust particles drifting in the air, empty space full of potential"
         }
       ]
     },
