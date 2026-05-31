@@ -83,7 +83,7 @@
         {
           "id": 1,
           "title": "Mutfak Girişi",
-          "location": "north_int",
+          "location": "north_kitchen",
           "camera": "high_establishing",
           "framing": "camera elevated at 3 meters height looking down at a 30 degree angle, character framed in the lower portion of a wide frame, doors swinging open in the foreground",
           "action": "character pushing through double swing kitchen doors from the dining room into the kitchen, both arms raised pushing the doors outward, stepping forward, dynamic stride",
@@ -92,7 +92,7 @@
         {
           "id": 2,
           "title": "Önlüğü Bağlıyor",
-          "location": "north_int",
+          "location": "north_kitchen",
           "camera": "low_intimate",
           "framing": "camera very close 1.2 meters behind at waist height 1.0m, slight 5 degree dutch tilt, tight cropped frame on the upper back and the hands tying the knot",
           "action": "character standing at a stainless steel prep counter facing away, both arms bent sharply backward, hands behind his back tying the chef apron strap into a tight knot at the small of his back, apron straps crossing visibly on his back",
@@ -101,7 +101,7 @@
         {
           "id": 3,
           "title": "Izgara Ateşi",
-          "location": "north_int",
+          "location": "north_kitchen",
           "camera": "low_side_action",
           "framing": "camera at ground level 0.6m height to the LEFT side of the character at 1.5 meters distance, three-quarter back side-profile, character silhouetted against the bright grill flames",
           "action": "character crouched in front of a large industrial gas grill, right hand on the gas valve knob, head turned slightly toward the grill, blue and orange flames just igniting and licking up under the cast iron grates",
@@ -110,7 +110,7 @@
         {
           "id": 4,
           "title": "Tezgahta Sebze Doğruyor",
-          "location": "north_int",
+          "location": "north_kitchen",
           "camera": "over_shoulder_topdown",
           "framing": "camera just above and behind the right shoulder at 1.9m height angled steeply downward 50 degrees onto the cutting board, knife and hands filling the lower foreground, head visible at the top of frame from behind",
           "action": "character standing at a wooden prep board, chef knife gripped in the right hand in a mid downstroke slicing through a red bell pepper, left hand curled holding the pepper, focused downward gaze, motion blur on the knife edge",

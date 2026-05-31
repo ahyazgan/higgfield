@@ -121,10 +121,17 @@ generate_one() {
     die "M$mission sahne $scene prompt'unda çelişki var — üretim iptal (yukarıdaki uyarılara bak)."
   fi
 
-  # Ref kontrolü
+  # Ref kontrolü — dry-run önizlemesi ref görseli gerektirmez (CLI çağrılmaz).
+  # Gerçek üretimde ref zorunlu.
   local ref="$LOC_REF"
   for img in "$FACE_REF" "$ref"; do
-    [ -f "$img" ] || die "Referans görseli yok: $img"
+    if [ ! -f "$img" ]; then
+      if [ "$DRY_RUN" = 1 ]; then
+        warn "(dry-run) ref görseli yok: $img — gerçek üretimde gerekli"
+      else
+        die "Referans görseli yok: $img"
+      fi
+    fi
   done
 
   local base="M${mission}_s${scene}"
@@ -205,12 +212,13 @@ run_check() {
   fi
 
   # Sahne listesi
-  local scenes; scenes="$(jqm ".missions.\"$MISSION\".scenes[].id")"
+  local scenes missing=0; scenes="$(jqm ".missions.\"$MISSION\".scenes[].id")"
   for sc in $scenes; do
     build_scene "$MISSION" "$sc"
-    # ref kontrolü
+    # ref kontrolü — eksik ref config hatası DEĞİL, asset hazırlık uyarısıdır
+    # (gerçek üretim yine de ref'i şart koşar). Bu yüzden preflight'ı düşürmez.
     for img in "$FACE_REF" "$LOC_REF"; do
-      [ -f "$img" ] || { warn "s$sc: ref yok: $img"; fail=$((fail+1)); }
+      if [ ! -f "$img" ]; then warn "s$sc: ref görseli yok (üretim için gerekli): $img"; missing=$((missing+1)); fi
     done
     # mutex
     if mutex_check "$PROMPT" 2>/tmp/mx.$$; then
@@ -221,10 +229,13 @@ run_check() {
     rm -f /tmp/mx.$$
   done
 
-  if [ "$fail" -eq 0 ]; then
-    log "Preflight TEMIZ ✔  (üretime hazır)"
+  if [ "$fail" -ne 0 ]; then
+    die "Preflight $fail config/çelişki sorunu buldu (yukarı bak)."
+  fi
+  if [ "$missing" -ne 0 ]; then
+    warn "Config TEMIZ ✔ ama $missing ref görseli eksik — o sahneler üretilemeden önce ilgili görseli ekle."
   else
-    die "Preflight $fail sorun buldu (yukarı bak)."
+    log "Preflight TEMIZ ✔  (üretime hazır)"
   fi
 }
 

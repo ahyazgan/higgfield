@@ -45,6 +45,10 @@ new_run_dir() {
   local root=$1 label=$2 stamp dir
   stamp="$(date +%Y%m%d-%H%M%S)"
   dir="${root}/${stamp}_${label}"
+  # Aynı saniyede başlayan iki koşu aynı dizini paylaşmasın
+  if [ -e "$dir" ]; then
+    dir="${root}/${stamp}-$$-${RANDOM}_${label}"
+  fi
   mkdir -p "$dir"
   ln -sfn "$(basename "$dir")" "${root}/latest"
   printf '%s\n' "$dir"
@@ -98,6 +102,13 @@ FORBIDDEN_IN_POSITIVE=(
   "looking at the camera"
   "front portrait"
 )
+# Karşıt yön ipuçları: ikisi de aynı prompt'ta geçerse kamera-modu ile framing/env
+# çelişiyordur (örn. eski CAM 'directly behind' + CAMX 'to the side' hatası).
+# Muhafazakar tutuldu — mevcut 12 sahnenin hiçbirinde ikisi birlikte geçmez.
+OPPOSING_PAIRS=(
+  "directly behind|to the side"
+  "directly behind|in front of"
+)
 mutex_check() {
   local prompt=$1 conflicts=0 sig n hit
   # 1) Tam olarak BİR kamera modu imzası olmalı.
@@ -117,6 +128,15 @@ mutex_check() {
   for hit in "${FORBIDDEN_IN_POSITIVE[@]}"; do
     if grep -qi -F "$hit" <<<"$prompt"; then
       warn "Çelişki: pozitif prompt'ta negatife ait terim var: '$hit'"
+      conflicts=$((conflicts + 1))
+    fi
+  done
+  # 3) Karşıt yön ipuçları aynı anda olmamalı (kamera modu ↔ framing/env çelişkisi).
+  local pair a b
+  for pair in "${OPPOSING_PAIRS[@]}"; do
+    a="${pair%%|*}"; b="${pair##*|}"
+    if grep -qi -F "$a" <<<"$prompt" && grep -qi -F "$b" <<<"$prompt"; then
+      warn "Çelişki: karşıt yön ipuçları birlikte: '$a' + '$b' (kamera modu ile framing/ortam uyumsuz)"
       conflicts=$((conflicts + 1))
     fi
   done

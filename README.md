@@ -36,6 +36,7 @@ generate_dashboard.sh    # dashboard asset üreticisi
 .claude/hooks/           # web SessionStart hook (jq + config doğrulama)
 .github/workflows/       # CI: JSON/syntax/mutex/dry-run doğrulama
 refs/                    # JAY_FACE.jpg + NORTH_MASTER.jpg + INTERIOR_MASTER.jpg
+                         #   (+ KITCHEN_MASTER.jpg — M02 mutfak sahneleri için, sen ekle)
 ```
 
 ## İki aşamalı boru hattı: still → video
@@ -112,7 +113,8 @@ Ortam değişkeniyle override: `MODEL`, `ASPECT`, `RESOLUTION`, `SEED`, `MAX_RET
 
 ## Tutarlılık yöntemi
 İki referans görsel her sahnede sabit kalır:
-1. **Lokasyon master** (`NORTH_MASTER.jpg` / `INTERIOR_MASTER.jpg`) → mekan/bina.
+1. **Lokasyon master** (`NORTH_MASTER.jpg` = dış cephe, `INTERIOR_MASTER.jpg` = salon,
+   `KITCHEN_MASTER.jpg` = mutfak — M02 s1–4 için eklemen gerekir) → mekan/bina.
 2. **Yüz referansı** (`JAY_FACE.jpg`) → karakter kimliği + saç deseni (arkadan bile).
 
 Bina/iç mekanı kelimeyle değil **referans görselle** sabitlemek tutarlılığın
