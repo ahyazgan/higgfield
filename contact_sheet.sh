@@ -32,9 +32,21 @@ esc() { sed -e 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
   .card pre{white-space:pre-wrap;word-break:break-word;font-size:11px;color:#aaa;margin:0;max-height:160px;overflow:auto}
   .missing{padding:40px 12px;text-align:center;color:#666;background:#161616}
   .tag{display:inline-block;font-size:10px;color:#999;border:1px solid #333;border-radius:4px;padding:1px 6px;margin-bottom:6px}
+  .qc{display:inline-block;font-size:10px;border-radius:4px;padding:1px 6px;margin:0 0 6px 4px;font-weight:600}
+  .qc.PASS{background:#173d1f;color:#7ee787;border:1px solid #2a6}
+  .qc.FAIL{background:#3d1717;color:#ff7b72;border:1px solid #a33}
+  .qc.SKIP{background:#222;color:#999;border:1px solid #444}
+  .review{font-size:11px;color:#bbb;margin-top:8px;border-top:1px solid #2a2a2a;padding-top:6px}
+  .review label{display:block;cursor:pointer}
 </style></head><body>
 HTML
   printf '<h1>Contact Sheet — %s</h1><div class="grid">\n' "$(basename "$RUN_DIR" | esc)"
+
+  QCCSV="$RUN_DIR/qc.csv"
+  qc_status() {  # base -> PASS/FAIL/SKIP (qc.csv yoksa boş)
+    [ -f "$QCCSV" ] || return 0
+    awk -F, -v b="$1" 'NR>1 && $1==b{print $2; exit}' "$QCCSV"
+  }
 
   shopt -s nullglob
   for pfile in "$RUN_DIR"/*.prompt.txt; do
@@ -42,6 +54,7 @@ HTML
     rfile="$RUN_DIR/$base.result.txt"
     url=""
     [ -f "$rfile" ] && url="$(extract_url "$rfile" || true)"
+    qc="$(qc_status "$base")"
 
     printf '<div class="card">'
     if [ -n "$url" ]; then
@@ -49,10 +62,13 @@ HTML
     else
       printf '<div class="missing">görsel yok / üretilmedi</div>'
     fi
-    printf '<div class="body"><h2>%s</h2><span class="tag">%s</span><pre>%s</pre></div></div>\n' \
+    printf '<div class="body"><h2>%s</h2><span class="tag">%s</span>' \
       "$(esc <<<"$base")" \
-      "$( [ -n "$url" ] && echo "URL var" || echo "dry-run / sonuç yok" )" \
-      "$(esc < "$pfile")"
+      "$( [ -n "$url" ] && echo "URL var" || echo "dry-run / sonuç yok" )"
+    if [ -n "$qc" ]; then printf '<span class="qc %s">QC: %s</span>' "$qc" "$qc"; fi
+    # Manuel inceleme: otomatik QC yakalayamadığı kuralları insanın onaylaması için
+    printf '<div class="review"><label><input type="checkbox"> Karakter ARKADAN (yüz kameraya dönük değil)</label><label><input type="checkbox"> Bina/iç mekan master ile aynı</label><label><input type="checkbox"> Kıyafet/kimlik tutarlı</label></div>'
+    printf '<pre>%s</pre></div></div>\n' "$(esc < "$pfile")"
   done
 
   printf '</div></body></html>\n'
