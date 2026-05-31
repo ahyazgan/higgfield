@@ -6,6 +6,10 @@ out_video/
 # Original full-size master PNGs (backed up locally, too large for git)
 refs/_originals/
 
+# Python bytecode (regeneratable)
+__pycache__/
+*.pyc
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
