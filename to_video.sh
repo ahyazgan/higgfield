@@ -8,6 +8,7 @@
 #   ./to_video.sh --dry-run out/latest        # motion prompt'ları göster, CLI çağırma
 #   ./to_video.sh --scene 3 out/latest        # sadece sahne 3
 #   ./to_video.sh --chain out/latest          # last-frame chaining (akıcı tek-çekim)
+#   ./to_video.sh --platform cinema out/latest # platform profili (reels=9:16 / cinema=16:9)
 #
 # Model esnek: VIDEO_MODEL env veya missions.json .defaults.video.model (vars. seedance).
 # Model flag'leri presets/video_models.json adaptöründen kurulur (modele göre değişir).
@@ -23,11 +24,12 @@ PRESETS_VID="presets/video_models.json"
 MISSIONS="missions.json"
 OUT_ROOT="out_video"
 
-DRY_RUN=0; ONLY_SCENE=""; STILLS_DIR=""; CHAIN=0
+DRY_RUN=0; ONLY_SCENE=""; STILLS_DIR=""; CHAIN=0; PLATFORM="${PLATFORM:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
     --chain) CHAIN=1 ;;
+    --platform) PLATFORM="${2:?--platform bir isim ister (reels|cinema)}"; shift ;;
     --scene) ONLY_SCENE="${2:?--scene bir sayı ister}"; shift ;;
     -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
     --*) die "Bilinmeyen seçenek: $1" ;;
@@ -44,9 +46,18 @@ STILLS_DIR="$(resolve_run_dir "$STILLS_DIR")"   # 'latest' -> gerçek koşu dizi
 SEL_FILE="$STILLS_DIR/selection.json"
 
 jqm() { jq -r "$1" "$MISSIONS"; }
+# Platform profili: --platform > PLATFORM env > missions defaults.platform > "cinema".
+PLATFORM="${PLATFORM:-$(jqm '.defaults.platform // empty')}"
+PLATFORM="${PLATFORM:-cinema}"
+[ -f "$PLATFORMS_FILE" ] && { jq empty "$PLATFORMS_FILE" 2>/dev/null || die "Geçersiz JSON: $PLATFORMS_FILE"; }
+PLAT_ASPECT="$(platform_field "$PLATFORM" aspect_ratio "$(jqm '.defaults.aspect_ratio')")"
+PLAT_MAXDUR="$(platform_field "$PLATFORM" max_duration "")"
+
 VMODEL="${VIDEO_MODEL:-$(jqm '.defaults.video.model')}"
 DURATION="$(jqm '.defaults.video.duration')"
-ASPECT="${ASPECT:-$(jqm '.defaults.aspect_ratio')}"
+ASPECT="${ASPECT:-$PLAT_ASPECT}"                      # platform en/boy oranı (video 9:16/16:9 destekler)
+# NOT: video çözünürlüğü modele özgüdür (480p/720p/1080p); platformun '2k' (görsel)
+# değeri video CLI'ına gönderilmez — VRES adaptörden/missions'tan gelir.
 VRES="$(jqm '.defaults.video.resolution')"            # 480p/720p/1080p (modele göre)
 COMMON_MOTION="$(jqm '.defaults.video.common_motion')"
 MAX_RETRY="${MAX_RETRY:-3}"
@@ -71,9 +82,16 @@ else
   fi
 fi
 
+# Platform süre tavanı: klip süresi profil max_duration'ı aşmasın.
+if [ -n "$PLAT_MAXDUR" ] && [ "$PLAT_MAXDUR" != "null" ] && [ "${DURATION:-0}" -gt "$PLAT_MAXDUR" ] 2>/dev/null; then
+  info "süre $DURATION -> $PLAT_MAXDUR (platform '$PLATFORM' tavanı)"
+  DURATION="$PLAT_MAXDUR"
+fi
+
 RUN_DIR="$(new_run_dir "$OUT_ROOT" "clips")"
 MANIFEST="$RUN_DIR/manifest.csv"
 manifest_init "$MANIFEST"
+log "Platform: $PLATFORM (aspect ${ASPECT}, video süre ${DURATION}s)"
 log "Video modeli: $VMODEL | süre ${DURATION}s | kaynak: $STILLS_DIR"
 log "Koşu dizini: $RUN_DIR"
 

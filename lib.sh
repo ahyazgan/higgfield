@@ -21,6 +21,17 @@ need_cmd() { command -v "$1" >/dev/null 2>&1 || die "Gerekli komut bulunamadı: 
 # jq'nun çıkış kodu korunur (tr daima 0 dönse de pipeline jq'nunkini yansıtır).
 jq() { command jq "$@" | tr -d '\r'; }
 
+# ---- Platform profilleri (presets/platforms.json) --------------------------
+# Yayın hedefine göre aspect_ratio/resolution/süre tavanını tek yerden çözer.
+PLATFORMS_FILE="${PLATFORMS_FILE:-presets/platforms.json}"
+platform_field() {  # platform_field <profil> <alan> <fallback> -> değer (profil/dosya yoksa fallback)
+  local name=$1 field=$2 fallback=$3 v=""
+  if [ -f "$PLATFORMS_FILE" ]; then
+    v="$(jq -r --arg p "$name" --arg f "$field" '.profiles[$p][$f] // empty' "$PLATFORMS_FILE" 2>/dev/null)"
+  fi
+  printf '%s' "${v:-$fallback}"
+}
+
 # ---- Atomik yazma ----------------------------------------------------------
 # stdin'i hedef dosyaya atomik olarak yazar (yarım/bozuk dosya bırakmaz).
 atomic_write() {

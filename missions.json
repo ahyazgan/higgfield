@@ -2,6 +2,7 @@
   "project": "NORTH",
   "defaults": {
     "model": "nano_banana_2",
+    "platform": "reels",
     "aspect_ratio": "9:16",
     "resolution": "2k",
     "seed": null,

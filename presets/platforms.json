@@ -1,0 +1,8 @@
+{
+  "_comment": "Yayın platformu profilleri. generate.sh ve to_video.sh '--platform <isim>' ile seçer; profilden aspect_ratio + resolution (+ video için max_duration süre tavanı) otomatik yüklenir. Seçim önceliği: --platform > PLATFORM env > missions.json .defaults.platform > 'cinema'.",
+  "default": "cinema",
+  "profiles": {
+    "reels":  { "aspect_ratio": "9:16", "resolution": "2k", "max_duration": 30 },
+    "cinema": { "aspect_ratio": "16:9", "resolution": "2k", "max_duration": 60 }
+  }
+}

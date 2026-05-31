@@ -6,6 +6,7 @@
 #   ./generate.sh 01 3                 M01, sahne 3
 #   ./generate.sh 02                   M02, tüm sahneler
 #   ./generate.sh --all                TÜM mission'lar tek koşuda + birleşik manifest
+#   ./generate.sh --platform reels 01  Platform profili (reels=9:16, cinema=16:9)
 #   ./generate.sh --jobs 6 01          Sahneleri PARALEL üret (en çok 6 eşzamanlı)
 #   ./generate.sh --check [--all]      Üretmeden doğrula: config + ref + mutex + CLI flag uyumu
 #   ./generate.sh --dry-run 01 2       Prompt'u kur ve göster, CLI çağırma, kredi harcama
@@ -29,7 +30,7 @@ MISSIONS="missions.json"
 OUT_ROOT="out"
 
 # ---- Argüman ayrıştırma ----------------------------------------------------
-DRY_RUN=0; CHECK=0; VARIANTS=1; BUDGET="${BUDGET:-}"; ALL=0; JOBS="${JOBS:-1}"
+DRY_RUN=0; CHECK=0; VARIANTS=1; BUDGET="${BUDGET:-}"; ALL=0; JOBS="${JOBS:-1}"; PLATFORM="${PLATFORM:-}"
 ARCHIVE=1; if [ "${NO_ARCHIVE:-}" = 1 ]; then ARCHIVE=0; fi
 ARGS=()
 while [ $# -gt 0 ]; do
@@ -37,6 +38,7 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY_RUN=1 ;;
     --check)   CHECK=1 ;;
     --all)     ALL=1 ;;
+    --platform) PLATFORM="${2:?--platform bir isim ister (reels|cinema)}"; shift ;;
     --jobs)    JOBS="${2:?--jobs bir sayı ister}"; shift ;;
     --variants) VARIANTS="${2:?--variants bir sayı ister}"; shift ;;
     --budget)  BUDGET="${2:?--budget bir sayı ister}"; shift ;;
@@ -66,9 +68,17 @@ done
 
 jqm() { jq -r "$1" "$MISSIONS"; }
 
+# Platform profili: --platform > PLATFORM env > missions defaults.platform > "cinema".
+# Profilden aspect_ratio/resolution gelir; ASPECT/RESOLUTION env'leri yine de üst tutar.
+PLATFORM="${PLATFORM:-$(jqm '.defaults.platform // empty')}"
+PLATFORM="${PLATFORM:-cinema}"
+[ -f "$PLATFORMS_FILE" ] && { jq empty "$PLATFORMS_FILE" 2>/dev/null || die "Geçersiz JSON: $PLATFORMS_FILE"; }
+PLAT_ASPECT="$(platform_field "$PLATFORM" aspect_ratio "$(jqm '.defaults.aspect_ratio')")"
+PLAT_RES="$(platform_field "$PLATFORM" resolution "$(jqm '.defaults.resolution')")"
+
 MODEL="${MODEL:-$(jqm '.defaults.model')}"
-ASPECT="${ASPECT:-$(jqm '.defaults.aspect_ratio')}"
-RESOLUTION="${RESOLUTION:-$(jqm '.defaults.resolution')}"
+ASPECT="${ASPECT:-$PLAT_ASPECT}"
+RESOLUTION="${RESOLUTION:-$PLAT_RES}"
 STYLE="$(jqm '.defaults.style')"
 NEGATIVE="$(jqm '.defaults.negative')"
 COMPOSITION="$(jqm '.defaults.composition // empty')"   # dikey 9:16 kompozisyon yönergesi
@@ -320,6 +330,7 @@ RUN_LABEL="M${MISSION}"; [ "$ALL" = 1 ] && RUN_LABEL="ALL"
 RUN_DIR="$(new_run_dir "$OUT_ROOT" "$RUN_LABEL")"
 MANIFEST="$RUN_DIR/manifest.csv"
 manifest_init "$MANIFEST"
+log "Platform: $PLATFORM (aspect ${ASPECT}, res ${RESOLUTION})"
 log "Koşu dizini: $RUN_DIR"
 
 # Bir mission'ı üretir (scene verilirse sadece onu). Tüm sahneler tek RUN_DIR/MANIFEST'e yazılır.
