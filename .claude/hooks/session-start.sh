@@ -1,13 +1,16 @@
 #!/bin/bash
 # NORTH — SessionStart hook (Claude Code on the web).
 # jq'nun kurulu olduğundan emin olur ve config'i doğrular (drift/çelişki erken yakalama).
-# Senkron çalışır: oturum başlamadan önce ortam hazır olur.
+# Async çalışır: oturum hook'u beklemeden başlar (daha hızlı açılış).
 set -euo pipefail
 
 # Yalnızca uzak (web) ortamda çalış
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
+
+# Async mod: oturum bu script arka planda koşarken başlar.
+echo '{"async": true, "asyncTimeout": 300000}'
 
 cd "${CLAUDE_PROJECT_DIR:-.}"
 
