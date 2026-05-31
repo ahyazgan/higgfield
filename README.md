@@ -22,10 +22,23 @@ presets/locations.json   # lokasyon (north_ext / north_int)
 presets/cameras.json     # kamera MODLARI (mutex)
 dashboard_assets.json    # Soccer Manager asset tanımları
 lib.sh                   # ortak: retry, atomik yazma, manifest, mutex, run-izolasyonu
-generate.sh              # NORTH sahne üreticisi
+generate.sh              # NORTH sahne üreticisi (still kareler)
+to_video.sh              # image-to-video: kareleri kliplere çevirir
+assemble.sh              # klipleri tek mp4'e birleştirir (ffmpeg)
 generate_dashboard.sh    # dashboard asset üreticisi
 contact_sheet.sh         # koşu dizininden HTML galeri
 refs/                    # JAY_FACE.jpg + NORTH_MASTER.jpg + INTERIOR_MASTER.jpg
+```
+
+## İki aşamalı boru hattı: still → video
+Sistem önce **sabit kare** üretir, sonra istersen o kareleri **image-to-video**
+ile klibe çevirir (Seedance/Kling/Veo). Karakter+mekan zaten karede kilitli
+olduğu için video tutarlılığı yüksek olur.
+
+```
+                 ./generate.sh 01        ./to_video.sh out/latest      ./assemble.sh out_video/latest
+  missions.json ───────────────►  6 still ──────────────────────►  6 klip ───────────────────────►  final.mp4
+  + presets/        (kareler)        (start-image)     (Seedance i2v)        (ffmpeg + müzik)
 ```
 
 ## Kurulum
@@ -44,12 +57,19 @@ higgsfield auth login
 ./generate.sh --variants 4 01 2       # sahne 2 için 4 varyant (seed kayar)
 ./contact_sheet.sh out/latest         # son koşunun HTML galerisi
 
+./to_video.sh --dry-run out/latest    # motion prompt'ları göster (üretmeden)
+./to_video.sh out/latest              # her kareyi klibe çevir (Seedance i2v)
+./to_video.sh --scene 3 out/latest    # sadece sahne 3'ün klibi
+./assemble.sh out_video/latest        # klipleri tek mp4'e birleştir
+./assemble.sh out_video/latest --music track.mp3   # müzikli
+
 ./generate_dashboard.sh --list        # dashboard asset listesi
 ./generate_dashboard.sh --dry-run     # tüm dashboard prompt'ları (üretmeden)
 ./generate_dashboard.sh 5             # sadece asset 5
 ```
 
-Ortam değişkeniyle override: `MODEL`, `ASPECT`, `RESOLUTION`, `SEED`, `MAX_RETRY`.
+Ortam değişkeniyle override: `MODEL`, `ASPECT`, `RESOLUTION`, `SEED`, `MAX_RETRY`,
+`VIDEO_MODEL` (varsayılan `seedance` — `missions.json .defaults.video`).
 Örn. ucuz taslak: `RESOLUTION=1k ./generate.sh 01`.
 
 ## Yeni içerik eklemek (kod yazmadan)
@@ -70,6 +90,10 @@ anahtarıdır; prompt yalnızca "match the reference exactly" der.
 - **CLI flag'leri** sürümle değişebilir (`--negative-prompt`, `--resolution`,
   `--seed`, `--aspect_ratio`). İlk gerçek üretimden önce
   `higgsfield generate create <model> --help` ile doğrula; `generate.sh`'ın
-  `run_cli` fonksiyonundaki flag adlarını gerekirse güncelle.
+  `run_cli` fonksiyonundaki flag adlarını gerekirse güncelle. Aynısı video
+  tarafı için de geçerli (`to_video.sh` içindeki `--start-image`, `--duration`,
+  `--fps`) — video modelinin gerçek flag adlarını `--help` ile teyit et.
+- **Video modeli kurulumu:** `to_video.sh` still karelerin sonuç URL'sini
+  başlangıç görseli yapar; önce `./generate.sh` ile kareleri üretmen gerekir.
 - `--check` ve `--dry-run` higgsfield kurulu olmadan da çalışır (config + prompt
   testi için).
