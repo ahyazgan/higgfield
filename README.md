@@ -35,6 +35,11 @@ Sistem önce **sabit kare** üretir, sonra istersen o kareleri **image-to-video*
 ile klibe çevirir (Seedance/Kling/Veo). Karakter+mekan zaten karede kilitli
 olduğu için video tutarlılığı yüksek olur.
 
+**Last-frame chaining (`--chain`):** ilk sahne kendi still'inden başlar; sonraki
+her sahne **bir önceki klibin son karesinden** başlar — böylece sahneler arası
+sıçrama azalır, akıcı tek-çekim hissi oluşur. (ffmpeg + curl gerektirir; yoksa
+zincir o sahnede kırılıp kendi still'ine düşer ve seni uyarır.)
+
 ```
                  ./generate.sh 01        ./to_video.sh out/latest      ./assemble.sh out_video/latest
   missions.json ───────────────►  6 still ──────────────────────►  6 klip ───────────────────────►  final.mp4
@@ -60,6 +65,7 @@ higgsfield auth login
 ./to_video.sh --dry-run out/latest    # motion prompt'ları göster (üretmeden)
 ./to_video.sh out/latest              # her kareyi klibe çevir (Seedance i2v)
 ./to_video.sh --scene 3 out/latest    # sadece sahne 3'ün klibi
+./to_video.sh --chain out/latest      # last-frame chaining (akıcı tek-çekim)
 ./assemble.sh out_video/latest        # klipleri tek mp4'e birleştir
 ./assemble.sh out_video/latest --music track.mp3   # müzikli
 

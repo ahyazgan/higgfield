@@ -7,6 +7,7 @@
 #   ./to_video.sh out/latest                 # koşudaki tüm kareleri klibe çevir
 #   ./to_video.sh --dry-run out/latest        # motion prompt'ları göster, CLI çağırma
 #   ./to_video.sh --scene 3 out/latest        # sadece sahne 3
+#   ./to_video.sh --chain out/latest          # last-frame chaining (akıcı tek-çekim)
 #
 # Model esnek: VIDEO_MODEL env veya missions.json .defaults.video.model (vars. seedance).
 # Flag adları (--start-image/--duration/--fps) sürümle değişebilir; --help ile doğrula.
@@ -21,17 +22,21 @@ PRESETS_CAM="presets/cameras.json"
 MISSIONS="missions.json"
 OUT_ROOT="out_video"
 
-DRY_RUN=0; ONLY_SCENE=""; STILLS_DIR=""
+DRY_RUN=0; ONLY_SCENE=""; STILLS_DIR=""; CHAIN=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
+    --chain) CHAIN=1 ;;
     --scene) ONLY_SCENE="${2:?--scene bir sayı ister}"; shift ;;
-    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
     --*) die "Bilinmeyen seçenek: $1" ;;
     *) STILLS_DIR="$1" ;;
   esac
   shift
 done
+if [ "$CHAIN" = 1 ] && [ -n "$ONLY_SCENE" ]; then
+  die "--chain ve --scene birlikte kullanılamaz (zincir tüm sahneleri sırayla ister)."
+fi
 [ -n "$STILLS_DIR" ] || die "Still koşu dizini gerekli. Örn: ./to_video.sh out/latest"
 [ -d "$STILLS_DIR" ] || die "Dizin yok: $STILLS_DIR"
 
@@ -84,20 +89,30 @@ clip_one() {
   if [ -n "$ONLY_SCENE" ] && [ "$scene" != "$ONLY_SCENE" ]; then return 0; fi
 
   build_motion "$mission" "$scene"
+  SEQ=$((SEQ + 1))
 
-  # Başlangıç görseli: still sonucundaki URL (yoksa dry-run/uyarı)
-  local rfile_src="$STILLS_DIR/$base.result.txt" start=""
-  if [ -f "$rfile_src" ]; then start="$(extract_url "$rfile_src" || true)"; fi
+  # Başlangıç görseli seçimi:
+  #  - zincir modunda ilk-sahne-dışı sahneler önceki klibin SON karesini kullanır
+  #  - aksi halde (veya zincir kırıldıysa) bu sahnenin kendi still URL'sini kullanır
+  local rfile_src="$STILLS_DIR/$base.result.txt" start="" start_label=""
+  if [ "$CHAIN" = 1 ] && [ "$SEQ" -gt 1 ] && [ -n "$PREV_LASTFRAME" ]; then
+    start="$PREV_LASTFRAME"; start_label="zincir: önceki klibin son karesi"
+  elif [ "$CHAIN" = 1 ] && [ "$SEQ" -gt 1 ] && [ "$DRY_RUN" = 1 ]; then
+    start=""; start_label="zincir: önceki klibin son karesi (gerçek koşuda dolar)"
+  else
+    if [ -f "$rfile_src" ]; then start="$(extract_url "$rfile_src" || true)"; fi
+    start_label="still: $base"
+  fi
 
   local mfile="$RUN_DIR/${base}.motion.txt"
   local rfile="$RUN_DIR/${base}.clip.txt"
   {
-    printf 'source_still=%s\nstart_image=%s\nvideo_model=%s duration=%s fps=%s\n\nMOTION:\n%s\n\nNEGATIVE:\n%s\n' \
-      "$base" "${start:-<yok>}" "$VMODEL" "$DURATION" "$FPS" "$MOTION_PROMPT" "$VNEG"
+    printf 'source_still=%s\nstart_image=%s (%s)\nvideo_model=%s duration=%s fps=%s\n\nMOTION:\n%s\n\nNEGATIVE:\n%s\n' \
+      "$base" "${start:-<yok>}" "$start_label" "$VMODEL" "$DURATION" "$FPS" "$MOTION_PROMPT" "$VNEG"
   } | atomic_write "$mfile"
 
   if [ "$DRY_RUN" = 1 ]; then
-    log "[dry-run] $base → klip motion: $mfile"
+    log "[dry-run] $base → klip motion: $mfile  [başlangıç: $start_label]"
     info "$MOTION_PROMPT"
     manifest_append "$MANIFEST" "video" "$base" "1" "$VMODEL" "$ASPECT" "${DURATION}s" "" "dry-run" "-" "$(basename "$mfile")"
     return 0
@@ -109,17 +124,29 @@ clip_one() {
     return 0
   fi
 
-  log "$base → video klibi üretiliyor ($VMODEL)"
+  log "$base → video klibi üretiliyor ($VMODEL) [başlangıç: $start_label]"
   local status="ok"
   if with_retry "$MAX_RETRY" run_cli "$start" "$rfile"; then
     info "Klip URL: $(extract_url "$rfile" || echo '?')"
+    if [ "$CHAIN" = 1 ]; then
+      local cu lf; cu="$(extract_url "$rfile" || true)"
+      lf="$RUN_DIR/${base}.lastframe.jpg"
+      if [ -n "$cu" ] && chain_lastframe "$cu" "$lf"; then
+        PREV_LASTFRAME="$lf"; info "zincir: son kare → $(basename "$lf")"
+      else
+        PREV_LASTFRAME=""; warn "zincir kırıldı (ffmpeg/curl yok ya da indirme başarısız) — sonraki sahne kendi still'ini kullanır"
+      fi
+    fi
   else
     status="FAILED"; warn "$base klip üretilemedi."
   fi
   manifest_append "$MANIFEST" "video" "$base" "1" "$VMODEL" "$ASPECT" "${DURATION}s" "" "$status" "$(basename "$rfile")" "$(basename "$mfile")"
 }
 
+if [ "$CHAIN" = 1 ]; then log "Zincir modu (last-frame chaining) açık — sahneler sırayla, her klibin son karesi sonrakine başlangıç."; fi
+
 shopt -s nullglob
+SEQ=0; PREV_LASTFRAME=""
 found=0
 for pfile in $(ls "$STILLS_DIR"/*.prompt.txt 2>/dev/null | sort -V); do
   found=1
