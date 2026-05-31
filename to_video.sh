@@ -63,6 +63,12 @@ if [ -z "$START_FLAG" ]; then
   VVALID=0
 else
   VVALID=1
+  # Model geçerli bir süre bildiriyorsa onu kullan (örn. veo3_1 5 değil 8 ister).
+  VDUR="$(jq -r --arg m "$VMODEL" '.models[$m].duration // empty' "$PRESETS_VID")"
+  if [ -n "$VDUR" ] && [ "$VDUR" != "$DURATION" ]; then
+    info "süre $DURATION -> $VDUR ($VMODEL için geçerli süre)"
+    DURATION="$VDUR"
+  fi
 fi
 
 RUN_DIR="$(new_run_dir "$OUT_ROOT" "clips")"

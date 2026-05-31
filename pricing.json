@@ -1,10 +1,14 @@
 {
-  "_comment": "Model başına TAHMİNİ birim üretim maliyeti. Gerçek rakamları higgsfield faturandan/planından doldur. Bilinmeyen model 0 sayılır (uyarı verilir). currency sadece raporlama etiketidir.",
-  "currency": "USD",
+  "_comment": "Model başına birim üretim maliyeti (higgsfield KREDİ cinsinden). `higgsfield generate cost <model>` ile doğrulandı (2026-05-31). Video maliyeti süreye bağlı — buradaki rakamlar presets/video_models.json'daki varsayılan sürelere göredir. Bilinmeyen model 0 sayılır (uyarı verilir).",
+  "_how_to_update": "Gerçek maliyet: higgsfield generate cost <model> --prompt test [--image x --duration N ...]  (krediyi HARCAMAZ).",
+  "currency": "credits",
   "models": {
-    "nano_banana_2": 0.0,
-    "seedance": 0.0,
-    "kling": 0.0,
-    "veo": 0.0
+    "nano_banana_2": 2.0,
+    "seedance_2_0": 22.5,
+    "seedance1_5": 9.6,
+    "kling2_6": 10.0,
+    "kling3_0": 10.0,
+    "veo3_1": 22.0,
+    "veo3": 22.0
   }
 }
