@@ -71,6 +71,8 @@ ASPECT="${ASPECT:-$(jqm '.defaults.aspect_ratio')}"
 RESOLUTION="${RESOLUTION:-$(jqm '.defaults.resolution')}"
 STYLE="$(jqm '.defaults.style')"
 NEGATIVE="$(jqm '.defaults.negative')"
+COMPOSITION="$(jqm '.defaults.composition // empty')"   # dikey 9:16 kompozisyon yönergesi
+HUD="$(jqm '.defaults.hud // empty')"                   # GTA minimap/HUD bindirmesi
 SEED_DEFAULT="$(jqm '.defaults.seed')"
 SEED="${SEED:-$SEED_DEFAULT}"        # "null" => seed kullanılmaz
 MAX_RETRY="${MAX_RETRY:-3}"
@@ -126,8 +128,12 @@ build_scene() {
   cam_base="$(jq -r --arg m "$cam_id" '.modes[$m] // empty' "$PRESETS_CAM")"
   [ -n "$cam_base" ] || die "Kamera modu yok: '$cam_id' (geçerli: $(jq -r '.modes|keys|join(", ")' "$PRESETS_CAM"))"
 
-  # Sıra: lokasyon ankor + kimlik ankor -> lokasyon kilidi -> karakter -> KAMERA(tek mod) -> framing -> aksiyon -> ortam -> stil
-  PROMPT="$LOC_ANCHOR $CHAR_ANCHOR $LOC_LOCK, $CHAR_DESC, ${action}, ${cam_base}, ${framing}, ${env}, ${STYLE}"
+  # Sıra: lokasyon ankor + kimlik ankor -> lokasyon kilidi -> karakter -> KAMERA(tek mod)
+  #       -> framing -> aksiyon -> ortam -> DIKEY KOMPOZISYON -> stil -> GTA HUD
+  PROMPT="$LOC_ANCHOR $CHAR_ANCHOR $LOC_LOCK, $CHAR_DESC, ${action}, ${cam_base}, ${framing}, ${env}"
+  [ -n "$COMPOSITION" ] && PROMPT="$PROMPT, ${COMPOSITION}"
+  PROMPT="$PROMPT, ${STYLE}"
+  [ -n "$HUD" ] && PROMPT="$PROMPT, ${HUD}"
 }
 
 # ---- Üretim (tek sahne) ----------------------------------------------------
