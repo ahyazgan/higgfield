@@ -39,6 +39,7 @@ if [ "$CHAIN" = 1 ] && [ -n "$ONLY_SCENE" ]; then
 fi
 [ -n "$STILLS_DIR" ] || die "Still koşu dizini gerekli. Örn: ./to_video.sh out/latest"
 [ -d "$STILLS_DIR" ] || die "Dizin yok: $STILLS_DIR"
+SEL_FILE="$STILLS_DIR/selection.json"
 
 jqm() { jq -r "$1" "$MISSIONS"; }
 VMODEL="${VIDEO_MODEL:-$(jqm '.defaults.video.model')}"
@@ -88,6 +89,17 @@ clip_one() {
   [[ "$base" =~ ^M([0-9]+)_s([0-9]+) ]] || { warn "ad çözümlenemedi, atlanıyor: $base"; return 0; }
   local mission="${BASH_REMATCH[1]}" scene="${BASH_REMATCH[2]}"
   if [ -n "$ONLY_SCENE" ] && [ "$scene" != "$ONLY_SCENE" ]; then return 0; fi
+
+  # Seçim varsa: bu sahne için yalnızca seçilen varyantı işle
+  if [ -f "$SEL_FILE" ]; then
+    local key chosen
+    key="$(sed -E 's/_v[0-9]+$//' <<<"$base")"
+    chosen="$(jq -r --arg k "$key" '.[$k] // empty' "$SEL_FILE")"
+    if [ -n "$chosen" ] && [ "$chosen" != "$base" ]; then
+      info "$base: seçilmedi (seçili: $chosen) — atlanıyor"
+      return 0
+    fi
+  fi
 
   build_motion "$mission" "$scene"
   SEQ=$((SEQ + 1))
