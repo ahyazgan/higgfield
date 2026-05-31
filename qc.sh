@@ -19,7 +19,7 @@ cd "$(dirname "$0")"
 source ./lib.sh
 need_cmd jq
 
-RUN_DIR="${1:?Kullanım: ./qc.sh <koşu_dizini>}"
+RUN_DIR="$(resolve_run_dir "${1:?Kullanım: ./qc.sh <koşu_dizini>}")"
 [ -d "$RUN_DIR" ] || die "Dizin yok: $RUN_DIR"
 QC_LOC_MIN="${QC_LOC_MIN:-0.5}"
 MISSIONS="missions.json"; LOCS="presets/locations.json"
@@ -46,16 +46,20 @@ for rfile in $(ls "$RUN_DIR"/*.result.txt 2>/dev/null | sort -V); do
   pfile="$RUN_DIR/$base.prompt.txt"
   aspect=""; [ -f "$pfile" ] && aspect="$(grep -oE 'aspect=[^ ]+' "$pfile" | head -1 | cut -d= -f2 || true)"
 
-  if [ -z "$url" ]; then
-    printf '%s,SKIP,,,,,,,,no-url\n' "$base" >> "$QCCSV"; skip=$((skip+1)); warn "$base: URL yok, atlanıyor"; continue
-  fi
-  if [ "$have_curl" = 0 ]; then
-    printf '%s,SKIP,,,,,,,,no-curl\n' "$base" >> "$QCCSV"; skip=$((skip+1)); continue
-  fi
-
-  img="$QC_DIR/$base.img"
-  if ! with_retry 3 curl -fsSL "$url" -o "$img"; then
-    printf '%s,SKIP,,,,,,,,download-failed\n' "$base" >> "$QCCSV"; skip=$((skip+1)); warn "$base: indirilemedi"; continue
+  # Görsel kaynağı: önce YEREL arşiv (kalıcı, hızlı), yoksa URL'den indir (süreli olabilir).
+  img=""
+  for e in png jpg jpeg webp gif; do [ -f "$RUN_DIR/$base.$e" ] && { img="$RUN_DIR/$base.$e"; break; }; done
+  if [ -z "$img" ]; then
+    if [ -z "$url" ]; then
+      printf '%s,SKIP,,,,,,,,no-image\n' "$base" >> "$QCCSV"; skip=$((skip+1)); warn "$base: ne arşiv ne URL var, atlanıyor"; continue
+    fi
+    if [ "$have_curl" = 0 ]; then
+      printf '%s,SKIP,,,,,,,,no-curl\n' "$base" >> "$QCCSV"; skip=$((skip+1)); continue
+    fi
+    img="$QC_DIR/$base.img"
+    if ! with_retry 3 curl -fsSL "$url" -o "$img"; then
+      printf '%s,SKIP,,,,,,,,download-failed\n' "$base" >> "$QCCSV"; skip=$((skip+1)); warn "$base: indirilemedi"; continue
+    fi
   fi
 
   core="$(python3 qc_core.py "$img" "$aspect" || true)"
@@ -85,6 +89,33 @@ for rfile in $(ls "$RUN_DIR"/*.result.txt 2>/dev/null | sort -V); do
   printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "$base" "$status" "$fmt" "$w" "$h" "$ar" "$by" "$ff" "$ls" "${note//,/;}" >> "$QCCSV"
   if [ "$status" = PASS ]; then info "$base: PASS (${fmt} ${w}x${h})"; else warn "$base: FAIL — $note"; fi
 done
+
+# ---- QC sonucunu manifest'e işle -------------------------------------------
+# Üretim status'u (ok) korunur; manifest'e ayrı bir 'qc_status' sütunu eklenir/güncellenir.
+# Eşleşme: manifest.result_file ("M01_s1.result.txt") -> base ("M01_s1") -> qc.csv.
+update_manifest_qc() {
+  local mf="$RUN_DIR/manifest.csv"
+  [ -f "$mf" ] || { warn "manifest yok, QC sütunu eklenemedi: $mf"; return 0; }
+  local tmp; tmp="$(mktemp "${mf}.qc.XXXXXX")" || return 0
+  awk -F, -v OFS=, -v qcf="$QCCSV" '
+    function clean(s){ gsub(/\r/,"",s); return s }
+    BEGIN{
+      while((getline l < qcf) > 0){ n=split(l,a,","); if(clean(a[1])!="base") st[clean(a[1])]=clean(a[2]) }
+    }
+    NR==1{
+      rfi=0; qci=0
+      for(i=1;i<=NF;i++){ c=clean($i); if(c=="result_file") rfi=i; if(c=="qc_status") qci=i }
+      if(qci==0){ qci=NF+1; $qci="qc_status" }
+      print; next
+    }
+    {
+      base=clean($rfi); sub(/\.result\.txt$/,"",base)
+      $qci=(base in st)?st[base]:""
+      print
+    }
+  ' "$mf" > "$tmp" && mv -f "$tmp" "$mf" && info "manifest güncellendi (qc_status sütunu): $mf"
+}
+update_manifest_qc
 
 log "QC bitti — PASS:$pass FAIL:$fail SKIP:$skip → $QCCSV"
 if [ -z "${QC_VISION_CMD:-}" ]; then

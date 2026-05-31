@@ -11,6 +11,7 @@ Sadece 127.0.0.1'e bağlanır (yerel kullanım).
 import json
 import os
 import re
+import secrets
 import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -18,6 +19,10 @@ from urllib.parse import urlparse
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PORT = int(os.environ.get("PORT", "8000"))
+# Eylem ucu (/api/run) için token. PANEL_TOKEN ile sabitlenebilir; yoksa her
+# başlatmada üretilir. Sayfaya server enjekte eder (tarayıcı otomatik gönderir);
+# özel başlık (X-Panel-Token) ayrıca CSRF'ye karşı preflight zorlar.
+TOKEN = os.environ.get("PANEL_TOKEN") or secrets.token_urlsafe(16)
 
 MISSION_RE = re.compile(r"^0[0-9]$")
 SCENE_RE = re.compile(r"^[0-9]$")
@@ -90,10 +95,11 @@ INDEX = """<!doctype html><html lang="tr"><head><meta charset="utf-8">
 <h2>Çıktı</h2>
 <pre id="out">Hazır. Bir işlem seç.</pre>
 <script>
+const TOKEN=__TOKEN__;
 async function api(action, mission, scene){
   const dry = document.getElementById('dry').checked;
   document.getElementById('out').textContent = '... çalışıyor: '+action+' '+(mission||'')+' '+(scene||'');
-  const r = await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r = await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json','X-Panel-Token':TOKEN},
     body:JSON.stringify({action,mission,scene,dry})});
   const j = await r.json();
   document.getElementById('out').textContent = '[rc='+j.rc+']\\n'+j.out;
@@ -134,7 +140,7 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/" or path == "/index.html":
-            self._send(200, INDEX)
+            self._send(200, INDEX.replace("__TOKEN__", json.dumps(TOKEN)))
         elif path == "/api/scenes":
             self._send(200, json.dumps(scenes_data(), ensure_ascii=False), "application/json")
         elif path == "/health":
@@ -145,6 +151,10 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         if urlparse(self.path).path != "/api/run":
             return self._send(404, "yok")
+        # Token kontrolü — sayfa otomatik gönderir; eksik/yanlışsa reddet.
+        if not secrets.compare_digest(self.headers.get("X-Panel-Token", ""), TOKEN):
+            return self._send(401, json.dumps({"rc": 1, "out": "yetkisiz (token yok/yanlış)"}),
+                              "application/json")
         length = int(self.headers.get("Content-Length", "0"))
         try:
             data = json.loads(self.rfile.read(length) or b"{}")
@@ -162,6 +172,7 @@ class H(BaseHTTPRequestHandler):
 def main():
     srv = ThreadingHTTPServer(("127.0.0.1", PORT), H)
     print(f"NORTH paneli: http://127.0.0.1:{PORT}  (Ctrl+C ile durdur)", file=sys.stderr)
+    print(f"  panel token: {TOKEN}  (sabitlemek için PANEL_TOKEN ortam değişkeni)", file=sys.stderr)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

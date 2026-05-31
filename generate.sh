@@ -27,13 +27,14 @@ MISSIONS="missions.json"
 OUT_ROOT="out"
 
 # ---- Argüman ayrıştırma ----------------------------------------------------
-DRY_RUN=0; CHECK=0; VARIANTS=1; BUDGET="${BUDGET:-}"
+DRY_RUN=0; CHECK=0; VARIANTS=1; BUDGET="${BUDGET:-}"; ALL=0
 ARCHIVE=1; if [ "${NO_ARCHIVE:-}" = 1 ]; then ARCHIVE=0; fi
 ARGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
     --check)   CHECK=1 ;;
+    --all)     ALL=1 ;;
     --variants) VARIANTS="${2:?--variants bir sayı ister}"; shift ;;
     --budget)  BUDGET="${2:?--budget bir sayı ister}"; shift ;;
     --no-archive) ARCHIVE=0 ;;
@@ -76,14 +77,17 @@ UCOST="$(model_cost "$MODEL")"       # birim üretim maliyeti
 CUR="$(currency)"
 SPENT=0; PROJECTED=0; STOP_BUDGET=0
 
-[ "$(jqm ".missions.\"$MISSION\" // empty")" != "" ] || die "Mission bulunamadı: $MISSION"
-CHAR_ID="$(jqm ".missions.\"$MISSION\".character")"
-
-# Karakter preset
-CHAR_DESC="$(jq -r --arg c "$CHAR_ID" '.[$c].description'      "$PRESETS_CHAR")"
-CHAR_ANCHOR="$(jq -r --arg c "$CHAR_ID" '.[$c].identity_anchor' "$PRESETS_CHAR")"
-FACE_REF="$(jq -r --arg c "$CHAR_ID" '.[$c].face_ref'          "$PRESETS_CHAR")"
-[ "$CHAR_DESC" != "null" ] || die "Karakter preset'i yok: $CHAR_ID"
+# Mission'a özgü karakter preset'ini global'lere yükler.
+# --all modunda her mission için ayrı çağrılır (mission'lar farklı karakter kullanabilir).
+load_mission() {
+  local m=$1
+  [ "$(jqm ".missions.\"$m\" // empty")" != "" ] || die "Mission bulunamadı: $m"
+  CHAR_ID="$(jqm ".missions.\"$m\".character")"
+  CHAR_DESC="$(jq -r --arg c "$CHAR_ID" '.[$c].description'      "$PRESETS_CHAR")"
+  CHAR_ANCHOR="$(jq -r --arg c "$CHAR_ID" '.[$c].identity_anchor' "$PRESETS_CHAR")"
+  FACE_REF="$(jq -r --arg c "$CHAR_ID" '.[$c].face_ref'          "$PRESETS_CHAR")"
+  [ "$CHAR_DESC" != "null" ] || die "Karakter preset'i yok: $CHAR_ID"
+}
 
 # ---- Prompt kurucu ---------------------------------------------------------
 # Sahne alanlarını okur, blokları çakışmayacak tek bir sırayla birleştirir.
@@ -215,39 +219,48 @@ run_cli() {
 }
 
 # ---- --check (preflight) ---------------------------------------------------
-run_check() {
-  log "Preflight kontrolü (M$MISSION)"
-  local fail=0
+# Tek mission'ın ref+mutex kontrolü; bulunan sorunları global CK_FAIL/CK_MISSING'e ekler.
+run_check_one() {
+  local m=$1 sc scenes
+  load_mission "$m"
+  scenes="$(jqm ".missions.\"$m\".scenes[].id")"
+  for sc in $scenes; do
+    build_scene "$m" "$sc"
+    # ref kontrolü — eksik ref config hatası DEĞİL, asset hazırlık uyarısıdır
+    # (gerçek üretim yine de ref'i şart koşar). Bu yüzden preflight'ı düşürmez.
+    for img in "$FACE_REF" "$LOC_REF"; do
+      if [ ! -f "$img" ]; then warn "M$m s$sc: ref görseli yok (üretim için gerekli): $img"; CK_MISSING=$((CK_MISSING+1)); fi
+    done
+    if mutex_check "$PROMPT" 2>/tmp/mx.$$; then
+      info "M$m s$sc ($S_TITLE): prompt OK ($(wc -w <<<"$PROMPT") kelime)"
+    else
+      cat /tmp/mx.$$ >&2; CK_FAIL=$((CK_FAIL+1))
+    fi
+    rm -f /tmp/mx.$$
+  done
+}
 
+run_check() {
+  CK_FAIL=0; CK_MISSING=0
   if command -v higgsfield >/dev/null 2>&1; then
     info "higgsfield: $(command -v higgsfield)"
   else
     warn "higgsfield CLI kurulu değil — gerçek üretim yapılamaz, --dry-run çalışır (config kontrolü sürüyor)"
   fi
 
-  # Sahne listesi
-  local scenes missing=0; scenes="$(jqm ".missions.\"$MISSION\".scenes[].id")"
-  for sc in $scenes; do
-    build_scene "$MISSION" "$sc"
-    # ref kontrolü — eksik ref config hatası DEĞİL, asset hazırlık uyarısıdır
-    # (gerçek üretim yine de ref'i şart koşar). Bu yüzden preflight'ı düşürmez.
-    for img in "$FACE_REF" "$LOC_REF"; do
-      if [ ! -f "$img" ]; then warn "s$sc: ref görseli yok (üretim için gerekli): $img"; missing=$((missing+1)); fi
-    done
-    # mutex
-    if mutex_check "$PROMPT" 2>/tmp/mx.$$; then
-      info "s$sc ($S_TITLE): prompt OK ($(wc -w <<<"$PROMPT") kelime)"
-    else
-      cat /tmp/mx.$$ >&2; fail=$((fail+1))
-    fi
-    rm -f /tmp/mx.$$
-  done
-
-  if [ "$fail" -ne 0 ]; then
-    die "Preflight $fail config/çelişki sorunu buldu (yukarı bak)."
+  if [ "$ALL" = 1 ]; then
+    log "Preflight kontrolü (TÜM mission'lar)"
+    for m in $(jqm '.missions|keys[]'); do run_check_one "$m"; done
+  else
+    log "Preflight kontrolü (M$MISSION)"
+    run_check_one "$MISSION"
   fi
-  if [ "$missing" -ne 0 ]; then
-    warn "Config TEMIZ ✔ ama $missing ref görseli eksik — o sahneler üretilemeden önce ilgili görseli ekle."
+
+  if [ "$CK_FAIL" -ne 0 ]; then
+    die "Preflight $CK_FAIL config/çelişki sorunu buldu (yukarı bak)."
+  fi
+  if [ "$CK_MISSING" -ne 0 ]; then
+    warn "Config TEMIZ ✔ ama $CK_MISSING ref görseli eksik — o sahneler üretilemeden önce ilgili görseli ekle."
   else
     log "Preflight TEMIZ ✔  (üretime hazır)"
   fi
@@ -259,18 +272,35 @@ if [ "$CHECK" = 1 ]; then
   exit 0
 fi
 
-RUN_DIR="$(new_run_dir "$OUT_ROOT" "M${MISSION}")"
+RUN_LABEL="M${MISSION}"; [ "$ALL" = 1 ] && RUN_LABEL="ALL"
+RUN_DIR="$(new_run_dir "$OUT_ROOT" "$RUN_LABEL")"
 MANIFEST="$RUN_DIR/manifest.csv"
 manifest_init "$MANIFEST"
 log "Koşu dizini: $RUN_DIR"
 
-if [ -n "$SCENE" ]; then
-  generate_one "$MISSION" "$SCENE" "$RUN_DIR" "$MANIFEST"
-else
-  for s in $(jqm ".missions.\"$MISSION\".scenes[].id"); do
-    generate_one "$MISSION" "$s" "$RUN_DIR" "$MANIFEST"
+# Bir mission'ı üretir (scene verilirse sadece onu). Tüm sahneler tek RUN_DIR/MANIFEST'e yazılır.
+gen_mission() {
+  local m=$1 only=${2:-}
+  load_mission "$m"
+  if [ -n "$only" ]; then
+    generate_one "$m" "$only" "$RUN_DIR" "$MANIFEST"
+  else
+    local s
+    for s in $(jqm ".missions.\"$m\".scenes[].id"); do
+      generate_one "$m" "$s" "$RUN_DIR" "$MANIFEST"
+      if [ "$STOP_BUDGET" = 1 ]; then break; fi
+    done
+  fi
+}
+
+if [ "$ALL" = 1 ]; then
+  log "Multi-mission akış: tüm mission'lar tek koşuda → $RUN_DIR"
+  for m in $(jqm '.missions|keys[]'); do
+    gen_mission "$m"
     if [ "$STOP_BUDGET" = 1 ]; then break; fi
   done
+else
+  gen_mission "$MISSION" "$SCENE"
 fi
 
 # Maliyet özeti

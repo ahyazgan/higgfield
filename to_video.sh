@@ -38,6 +38,7 @@ if [ "$CHAIN" = 1 ] && [ -n "$ONLY_SCENE" ]; then
   die "--chain ve --scene birlikte kullanılamaz (zincir tüm sahneleri sırayla ister)."
 fi
 [ -n "$STILLS_DIR" ] || die "Still koşu dizini gerekli. Örn: ./to_video.sh out/latest"
+STILLS_DIR="$(resolve_run_dir "$STILLS_DIR")"   # 'latest' -> gerçek koşu dizini (race/junction güvenli)
 [ -d "$STILLS_DIR" ] || die "Dizin yok: $STILLS_DIR"
 SEL_FILE="$STILLS_DIR/selection.json"
 

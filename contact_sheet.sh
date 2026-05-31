@@ -10,7 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 source ./lib.sh
 
-RUN_DIR="${1:?Kullanım: ./contact_sheet.sh <koşu_dizini>}"
+RUN_DIR="$(resolve_run_dir "${1:?Kullanım: ./contact_sheet.sh <koşu_dizini>}")"
 [ -d "$RUN_DIR" ] || die "Dizin yok: $RUN_DIR"
 OUT="$RUN_DIR/index.html"
 

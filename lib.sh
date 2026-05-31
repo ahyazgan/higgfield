@@ -82,6 +82,23 @@ update_latest() {
   printf '%s\n' "$base" > "${root}/latest.path" 2>/dev/null || true
 }
 
+# ---- 'latest' kısayolunu sabitle (race + Windows junction güvenli) ---------
+# resolve_run_dir <yol> -> verilen yol "<kök>/latest" ise latest.path'i okuyup
+# gerçek koşu dizinini döndürür; böylece paralel bir üretim 'latest'i değiştirse
+# bile (ya da Windows junction bozuksa) doğru dizine sabitlenir. Aksi halde yolu
+# olduğu gibi döndürür.
+resolve_run_dir() {
+  local p=${1%/} root base
+  if [ "$(basename "$p")" = "latest" ]; then
+    root="$(dirname "$p")"
+    if [ -f "$root/latest.path" ]; then
+      base="$(tr -d '\r\n' < "$root/latest.path")"
+      if [ -n "$base" ] && [ -d "$root/$base" ]; then printf '%s\n' "$root/$base"; return 0; fi
+    fi
+  fi
+  printf '%s\n' "$p"
+}
+
 # ---- Manifest --------------------------------------------------------------
 manifest_init() {
   local f=$1
