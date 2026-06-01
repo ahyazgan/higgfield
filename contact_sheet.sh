@@ -37,6 +37,7 @@ esc() { sed -e 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
   .qc.FAIL{background:#3d1717;color:#ff7b72;border:1px solid #a33}
   .qc.SKIP{background:#222;color:#999;border:1px solid #444}
   .qcnote{font-size:10px;color:#ff7b72;margin-top:4px}
+  .cover{display:inline-block;font-size:10px;border-radius:4px;padding:1px 6px;margin:0 0 6px 4px;font-weight:700;background:#3a2d00;color:#f4ce14;border:1px solid #a8860b}
   .review{font-size:11px;color:#bbb;margin-top:8px;border-top:1px solid #2a2a2a;padding-top:6px}
   .review label{display:block;cursor:pointer}
 </style></head><body>
@@ -49,6 +50,9 @@ HTML
     [ -f "$QCCSV" ] || return 0
     awk -F, -v b="$1" 'NR>1 && $1==b{print; exit}' "$QCCSV"
   }
+  # Seçili kapak (thumbnail_pick.sh) — eşleşen sahne kartı "COVER" rozeti alır.
+  COVER_BASE=""
+  [ -f "$RUN_DIR/thumbnail_selection.json" ] && COVER_BASE="$(jq -r '.cover_base // empty' "$RUN_DIR/thumbnail_selection.json" 2>/dev/null || true)"
 
   shopt -s nullglob
   for pfile in "$RUN_DIR"/*.prompt.txt; do
@@ -77,6 +81,7 @@ HTML
     printf '<div class="body"><h2>%s</h2><span class="tag">%s</span>' \
       "$(esc <<<"$base")" \
       "$( [ -n "$url" ] && echo "URL var" || echo "dry-run / sonuç yok" )"
+    if [ -n "$COVER_BASE" ] && [ "$base" = "$COVER_BASE" ]; then printf '<span class="cover">★ COVER</span>'; fi
     if [ -n "$qc" ]; then
       printf '<span class="qc %s">QC: %s</span>' "$qc" "$qc"
       detail=""

@@ -136,6 +136,17 @@ select_framing() {
   printf '%s' "$f"
 }
 
+# ---- Rol suffix'i (hook/cta/loop — Reels kurgu) ----------------------------
+# Sahnenin anlatı rolüne göre prompt'a eklenecek çerçeve talimatı (mid -> ek yok).
+role_suffix() {
+  case "$1" in
+    hook) printf 'HOOK FRAME: attention-grabbing opening, incomplete action that compels viewing to completion, dynamic energy, scroll-stopping composition' ;;
+    cta)  printf 'CTA FRAME: contemplative pause, open ending that hints at continuation, viewer left wanting more, emotionally resonant final image' ;;
+    loop) printf 'LOOP FRAME: scene composition deliberately mirrors the opening frame, visual elements positioned for seamless loop, circular narrative' ;;
+    *)    printf '' ;;
+  esac
+}
+
 # ---- Prompt kurucu ---------------------------------------------------------
 # Sahne alanlarını okur, blokları çakışmayacak tek bir sırayla birleştirir.
 # Sonuçları global'e değil, isimli değişkenlere yazar; her sahne için baştan kurulur.
@@ -146,12 +157,14 @@ build_scene() {
   [ -n "$s" ] || die "M$mission sahne $scene bulunamadı"
 
   S_TITLE="$(jq -r '.title'       <<<"$s")"
-  local loc_id cam_id framing action env
+  local loc_id cam_id framing action env role rolesuf
   loc_id="$(jq -r '.location'  <<<"$s")"
   cam_id="$(jq -r '.camera'    <<<"$s")"
   framing="$(select_framing "$s")"      # platform'a göre framing_reels / framing_cinema
   action="$(jq -r '.action'    <<<"$s")"
   env="$(jq -r '.environment' <<<"$s")"
+  role="$(jq -r '.role // empty' <<<"$s")"     # hook/mid/cta/loop
+  rolesuf="$(role_suffix "$role")"
 
   LOC_LOCK="$(jq -r --arg l "$loc_id" '.[$l].lock'   "$PRESETS_LOC")"
   LOC_ANCHOR="$(jq -r --arg l "$loc_id" '.[$l].anchor' "$PRESETS_LOC")"
@@ -165,6 +178,7 @@ build_scene() {
   # Sıra: lokasyon ankor + kimlik ankor -> lokasyon kilidi -> karakter -> KAMERA(tek mod)
   #       -> framing -> aksiyon -> ortam -> DIKEY KOMPOZISYON -> stil -> GTA HUD
   PROMPT="$LOC_ANCHOR $CHAR_ANCHOR $LOC_LOCK, $CHAR_DESC, ${action}, ${cam_base}, ${framing}, ${env}"
+  [ -n "$rolesuf" ]     && PROMPT="$PROMPT, ${rolesuf}"
   [ -n "$COMPOSITION" ] && PROMPT="$PROMPT, ${COMPOSITION}"
   PROMPT="$PROMPT, ${STYLE}"
   [ -n "$HUD" ] && PROMPT="$PROMPT, ${HUD}"
@@ -325,6 +339,10 @@ run_check_one() {
     fi
     rm -f /tmp/mx.$$
   done
+  # Hook kontrolü: her mission'ın en az bir 'hook' rolünde sahnesi olmalı (Reels açılışı).
+  if [ -z "$(jqm ".missions.\"$m\".scenes[]|select(.role==\"hook\")|.id" | head -1)" ]; then
+    warn "M$m: 'hook' rolünde sahne yok — Reels açılışı için bir hook sahnesi öner (sadece uyarı)."
+  fi
 }
 
 run_check() {

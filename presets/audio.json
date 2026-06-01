@@ -1,0 +1,10 @@
+{
+  "background_music": "audio/music.mp3",
+  "music_volume": 0.7,
+  "music_start_offset": 0,
+  "sfx_volume": 1.0,
+  "sfx": {
+    "scene_start": "audio/sfx/whoosh.mp3",
+    "scene_end":   "audio/sfx/impact.mp3"
+  }
+}

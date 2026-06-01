@@ -10,7 +10,20 @@ refs/_originals/
 __pycache__/
 *.pyc
 
+# Generated HUD overlay (hud_generator.py ile üretilir)
+hud/overlay.png
+
+# Ses medyası (kullanıcı koyar; büyük/telifli)
+audio/*.mp3
+audio/*.wav
+audio/**/*.mp3
+audio/**/*.wav
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
 *.swp
+
+# Model/karşılaştırma test çıktıları (büyük, geçici)
+out_model_test/
+out_soul_test/
